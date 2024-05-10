@@ -16,50 +16,35 @@ export class TrainingService {
 
   /** FUNCTION IMPLEMENTED TO CREATE A COURSE */
   async createCourse(courseDetails: CreateCourseDto, userId: string) {
-    /** EXTRACTION OF COURSE DETAILS */
+    const calculateTime = (phases) =>
+      phases.reduce(
+        (acc, phase) =>
+          acc +
+          phase.tasks.reduce(
+            (acc, task) =>
+              acc +
+              task.subtasks.reduce(
+                (acc, subTask) =>
+                  acc + this.timeStringToSeconds(subTask.estimatedTime),
+                0,
+              ),
+            0,
+          ),
+        0,
+      );
 
     const course: CourseDto = {
-      courseName: courseDetails.courseName,
-      approver: courseDetails.approver,
-      figmaLink: courseDetails.figmaLink,
-      guidelines: courseDetails.guidelines,
+      ...courseDetails,
       createdBy: userId,
       totalPhases: courseDetails.phases.length,
-      noOfTopics: courseDetails.phases.reduce((acc, phase) => {
-        return (
-          acc +
-          phase.tasks.reduce((acc, task) => {
-            return acc + task.subtasks.length;
-          }, 0)
-        );
-      }, 0),
-      estimatedTime: courseDetails.phases.reduce((acc, phase) => {
-        return (
-          acc +
-          phase.tasks.reduce((acc, task) => {
-            return (
-              acc +
-              task.subtasks.reduce((acc, subTask) => {
-                return acc + this.timeStringToSeconds(subTask.estimatedTime);
-              }, 0)
-            );
-          }, 0)
-        );
-      }, 0),
+      noOfTopics: calculateTime(courseDetails.phases),
+      estimatedTime: calculateTime(courseDetails.phases),
     };
 
     const createdCourse = await this.courseService.createCourse(course);
 
-    /** EXTRACTION OF PHASE*/
     const phases = courseDetails.phases.map((phase, index) => {
-      const allocatedTime: number = phase.tasks.reduce((acc, task) => {
-        return (
-          acc +
-          task.subtasks.reduce((acc, subTask) => {
-            return acc + this.timeStringToSeconds(subTask.estimatedTime);
-          }, 0)
-        );
-      }, 0);
+      const allocatedTime = calculateTime([phase]);
       return {
         name: phase.name,
         allocatedTime,
@@ -68,15 +53,11 @@ export class TrainingService {
       };
     });
 
-    const createdPhases =
-      await this.phaseService.createPhase(phases); /** CREATION OF PHASES */
+    const createdPhases = await this.phaseService.createPhase(phases);
 
-    /**EXTRACTION OF TASKS */
-    const tasks = courseDetails.phases.flatMap((phase, index) => {
-      return phase.tasks.flatMap((task, taskIndex) => {
-        const allocatedTime = task.subtasks.reduce((acc, subTask) => {
-          return acc + this.timeStringToSeconds(subTask.estimatedTime);
-        }, 0);
+    const tasks = courseDetails.phases.flatMap((phase, index) =>
+      phase.tasks.map((task, taskIndex) => {
+        const allocatedTime = calculateTime([{ ...phase, tasks: [task] }]);
         return {
           mainTask: task.mainTask,
           allocatedTime,
@@ -84,34 +65,28 @@ export class TrainingService {
           courseId: createdCourse._id,
           taskIndex,
         };
-      });
-    });
+      }),
+    );
 
-    const createdTasks =
-      await this.taskService.createTask(tasks); /**CREATION OF TASKS */
+    const createdTasks = await this.taskService.createTask(tasks);
 
-    /**EXTRACTION OF SUBTASKS */
-    const subTasks = courseDetails.phases.flatMap((phase, index) => {
-      return phase.tasks.flatMap((task, taskIndex) => {
-        return task.subtasks.map((subTask, subTaskIndex) => {
-          return {
-            ...subTask,
-            estimatedTime: this.timeStringToSeconds(subTask.estimatedTime),
-            courseId: createdCourse._id,
-            phaseId: createdPhases[index]._id,
-            taskId: createdTasks[taskIndex]._id,
-            subTaskIndex,
-          };
-        });
-      });
-    });
+    const subTasks = courseDetails.phases.flatMap((phase, index) =>
+      phase.tasks.flatMap((task, taskIndex) =>
+        task.subtasks.map((subTask, subTaskIndex) => ({
+          ...subTask,
+          estimatedTime: this.timeStringToSeconds(subTask.estimatedTime),
+          courseId: createdCourse._id,
+          phaseId: createdPhases[index]._id,
+          taskId: createdTasks[taskIndex]._id,
+          subTaskIndex,
+        })),
+      ),
+    );
 
-    /**CREATION OF SUBTASKS */
     await this.subTaskService.createSubTask(subTasks);
 
     return { createdCourse, phases, tasks, subTasks };
   }
-
   /** FUNCION IMPLEMENTED TO CONVERT STRING TIME TO SECONDS */
   timeStringToSeconds(timeString) {
     // Split the time string into hours and minutes
