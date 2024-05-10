@@ -8,6 +8,7 @@ import { PhaseModule } from './phase/phase.module';
 import { TaskModule } from './task/task.module';
 import { SubTaskModule } from './sub-task/sub-task.module';
 import { TrainingModule } from './training/training.module';
+import { HttpService } from './common/services/http.service';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { TrainingModule } from './training/training.module';
     TrainingModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, HttpService],
+  exports: [HttpService],
 })
 export class AppModule {}

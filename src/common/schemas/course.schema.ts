@@ -21,6 +21,27 @@ export class Course {
 
   @Prop({ default: false })
   deleted: boolean;
+
+  @Prop({ required: true })
+  createdBy: string;
+
+  @Prop({ default: '' })
+  updatedBy: string;
+
+  @Prop({ default: '' })
+  deletedBy: string;
+
+  @Prop({ default: [] })
+  approvedBy: string[];
+
+  @Prop({ required: true })
+  totalPhases: number;
+
+  @Prop({ required: true })
+  noOfTopics: number;
+
+  @Prop({ required: true })
+  estimatedTime: number;
 }
 
 export const CourseSchema = SchemaFactory.createForClass(Course);

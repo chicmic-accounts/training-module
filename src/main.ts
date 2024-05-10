@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common/pipes/validation.pipe';
+import { AuthGuard } from './common/guards/auth/auth.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +12,7 @@ async function bootstrap() {
       whitelist: true,
     }),
   );
+  app.useGlobalGuards(new AuthGuard());
   await app.listen(3000);
 }
 bootstrap();

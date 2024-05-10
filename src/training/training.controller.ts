@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req } from '@nestjs/common';
 import { CreateCourseDto } from 'src/common/dtos/create-course.dto';
 import { TrainingService } from './training.service';
 import { COMMON_RESPONSE } from 'src/common/constants/common-response';
@@ -9,8 +9,21 @@ export class TrainingController {
   constructor(private trainingService: TrainingService) {}
 
   @Post('course')
-  async createCourse(@Body() courseDetails: CreateCourseDto) {
-    const course = await this.trainingService.createCourse(courseDetails);
+  async createCourse(@Body() courseDetails: CreateCourseDto, @Req() req: any) {
+    const course = await this.trainingService.createCourse(
+      courseDetails,
+      req.user.userId,
+    );
     return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.COURSE_CREATED, course);
+  }
+
+  @Get('course')
+  async getAllCourses() {
+    const coursesData = await this.trainingService.getAllCourses();
+    return COMMON_RESPONSE(
+      MESSAGE.SUCCESS_MESSAGE.COURSE_FETCHED,
+      coursesData.courses,
+      coursesData.total,
+    );
   }
 }

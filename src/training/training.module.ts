@@ -5,10 +5,11 @@ import { CourseModule } from 'src/course/course.module';
 import { PhaseModule } from 'src/phase/phase.module';
 import { SubTaskModule } from 'src/sub-task/sub-task.module';
 import { TaskModule } from 'src/task/task.module';
+import { HttpService } from 'src/common/services/http.service';
 
 @Module({
   imports: [CourseModule, PhaseModule, TaskModule, SubTaskModule],
   controllers: [TrainingController],
-  providers: [TrainingService],
+  providers: [TrainingService, HttpService],
 })
 export class TrainingModule {}

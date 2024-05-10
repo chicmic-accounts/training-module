@@ -15,13 +15,37 @@ export class TrainingService {
   ) {}
 
   /** FUNCTION IMPLEMENTED TO CREATE A COURSE */
-  async createCourse(courseDetails: CreateCourseDto) {
+  async createCourse(courseDetails: CreateCourseDto, userId: string) {
     /** EXTRACTION OF COURSE DETAILS */
+
     const course: CourseDto = {
       courseName: courseDetails.courseName,
       approver: courseDetails.approver,
       figmaLink: courseDetails.figmaLink,
       guidelines: courseDetails.guidelines,
+      createdBy: userId,
+      totalPhases: courseDetails.phases.length,
+      noOfTopics: courseDetails.phases.reduce((acc, phase) => {
+        return (
+          acc +
+          phase.tasks.reduce((acc, task) => {
+            return acc + task.subtasks.length;
+          }, 0)
+        );
+      }, 0),
+      estimatedTime: courseDetails.phases.reduce((acc, phase) => {
+        return (
+          acc +
+          phase.tasks.reduce((acc, task) => {
+            return (
+              acc +
+              task.subtasks.reduce((acc, subTask) => {
+                return acc + this.timeStringToSeconds(subTask.estimatedTime);
+              }, 0)
+            );
+          }, 0)
+        );
+      }, 0),
     };
 
     const createdCourse = await this.courseService.createCourse(course);
@@ -100,5 +124,10 @@ export class TrainingService {
     const totalSeconds = date.getHours() * 3600 + date.getMinutes() * 60;
 
     return totalSeconds;
+  }
+
+  /** FUNCTION IMPLEMENTED TO FETCH ALL COURSES */
+  async getAllCourses() {
+    return await this.courseService.getAllCourses();
   }
 }

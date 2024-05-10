@@ -56,4 +56,8 @@ export class CourseDto {
   figmaLink: string;
   guidelines: string;
   approver: string[];
+  createdBy: string;
+  totalPhases: number;
+  noOfTopics: number;
+  estimatedTime: number;
 }

@@ -8,7 +8,7 @@ export class SubTask {
   @Prop({ required: true })
   subTask: string;
 
-  @Prop({ required: true })
+  @Prop()
   link: string;
 
   @Prop({ required: true })
