@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
 import { CreateCourseDto } from 'src/common/dtos/create-course.dto';
 import { TrainingService } from './training.service';
 import { COMMON_RESPONSE } from 'src/common/constants/common-response';
@@ -18,12 +18,12 @@ export class TrainingController {
   }
 
   @Get('course')
-  async getAllCourses() {
-    const coursesData = await this.trainingService.getAllCourses();
+  async getAllCourses(@Query() query: any) {
+    const coursesData = await this.trainingService.getAllCourses(query);
     return COMMON_RESPONSE(
       MESSAGE.SUCCESS_MESSAGE.COURSE_FETCHED,
-      coursesData.courses,
-      coursesData.total,
+      coursesData?.courses,
+      coursesData?.total,
     );
   }
 }

@@ -102,7 +102,7 @@ export class TrainingService {
   }
 
   /** FUNCTION IMPLEMENTED TO FETCH ALL COURSES */
-  async getAllCourses() {
-    return await this.courseService.getAllCourses();
+  async getAllCourses(query: any) {
+    return await this.courseService.getCourse(query);
   }
 }
