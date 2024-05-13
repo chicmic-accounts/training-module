@@ -61,7 +61,7 @@ export class CourseService {
   }
 
   /** FUNCTION IMPLEMENTED TO GET ALL THE COURSES */
-  async getAllCourses(query?: any) {
+  async getAllCourses(query: any) {
     const courses = await this.courseModel.aggregate([
       {
         $facet: {
@@ -104,27 +104,55 @@ export class CourseService {
             { $match: { $expr: { $eq: ['$courseId', '$$courseId'] } } },
             {
               $lookup: {
-                from: 'tasks', // specify the collection to join
+                from: 'tasks',
                 let: { phaseId: '$_id' },
                 pipeline: [
                   { $match: { $expr: { $eq: ['$phaseId', '$$phaseId'] } } },
                   {
                     $lookup: {
-                      from: 'subtasks', // specify the collection to join
+                      from: 'subtasks',
                       let: { taskId: '$_id' },
                       pipeline: [
                         { $match: { $expr: { $eq: ['$taskId', '$$taskId'] } } },
-                        // { $project: { subtasks: 0 } },
+                        {
+                          $project: {
+                            __v: 0,
+                            courseId: 0,
+                            phaseId: 0,
+                            taskId: 0,
+                            subTaskIndex: 0,
+                            createdAt: 0,
+                            updatedAt: 0,
+                          },
+                        },
                       ],
                       as: 'subtasks',
                     },
                   },
-                  // { $project: { subtasks: 0 } },
+                  {
+                    $project: {
+                      __v: 0,
+                      courseId: 0,
+                      phaseId: 0,
+                      taskId: 0,
+                      taskIndex: 0,
+                      createdAt: 0,
+                      updatedAt: 0,
+                    },
+                  },
                 ],
                 as: 'tasks',
               },
             },
-            // { $project: { tasks: 0 } },
+            {
+              $project: {
+                __v: 0,
+                courseId: 0,
+                createdAt: 0,
+                updatedAt: 0,
+                phaseIndex: 0,
+              },
+            },
           ],
           as: 'phases',
         },
