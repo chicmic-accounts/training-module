@@ -37,10 +37,10 @@ export class CourseService {
     });
 
     let courseData;
-    if (query.courseId) {
+    if (query?.courseId) {
       courseData = await this.getCourseById(query.courseId);
 
-      courseData.courses.approver = courseData.courses.approver.map(
+      courseData.courses['approver'] = courseData?.courses?.approver?.map(
         (approverId) => {
           return userIdToNameMap[approverId];
         },
@@ -50,8 +50,8 @@ export class CourseService {
 
       // Iterate through courses and replace user IDs with names
       courseData.courses.forEach((course) => {
-        course.createdByName = userIdToNameMap[course.createdBy].name;
-        course.approver = course.approver.map((approverId) => {
+        course['createdByName'] = userIdToNameMap[course?.createdBy]?.name;
+        course['approver'] = course?.approver?.map((approverId) => {
           return userIdToNameMap[approverId];
         });
       });

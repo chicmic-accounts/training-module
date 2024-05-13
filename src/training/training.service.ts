@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { CourseDto, CreateCourseDto } from 'src/common/dtos/create-course.dto';
 import { CourseService } from 'src/course/course.service';
 import { PhaseService } from 'src/phase/phase.service';
@@ -14,58 +14,45 @@ export class TrainingService {
     private subTaskService: SubTaskService,
   ) {}
 
-  /** FUNCTION IMPLEMENTED TO CREATE A COURSE */
-  async createCourse(courseDetails: CreateCourseDto, userId: string) {
-    const calculateTime = (phases) =>
-      phases.reduce(
-        (acc, phase) =>
-          acc +
-          phase.tasks.reduce(
-            (acc, task) =>
-              acc +
-              task.subtasks.reduce(
-                (acc, subTask) =>
-                  acc + this.timeStringToSeconds(subTask.estimatedTime),
-                0,
-              ),
-            0,
-          ),
+  calculateTime = (phases) =>
+    phases
+      .flatMap((phase) => phase.tasks.flatMap((task) => task.subtasks))
+      .reduce(
+        (acc, subTask) => acc + this.timeStringToSeconds(subTask.estimatedTime),
         0,
       );
+
+  /** FUNCTION IMPLEMENTED TO CREATE A COURSE */
+  async createCourse(courseDetails: CreateCourseDto, userId: string) {
+    const totalTime = this.calculateTime(courseDetails.phases);
 
     const course: CourseDto = {
       ...courseDetails,
       createdBy: userId,
       totalPhases: courseDetails.phases.length,
-      noOfTopics: calculateTime(courseDetails.phases),
-      estimatedTime: calculateTime(courseDetails.phases),
+      noOfTopics: totalTime,
+      estimatedTime: totalTime,
     };
 
     const createdCourse = await this.courseService.createCourse(course);
 
-    const phases = courseDetails.phases.map((phase, index) => {
-      const allocatedTime = calculateTime([phase]);
-      return {
-        name: phase.name,
-        allocatedTime,
-        courseId: createdCourse._id,
-        phaseIndex: index,
-      };
-    });
+    const phases = courseDetails.phases.map((phase, index) => ({
+      name: phase.name,
+      allocatedTime: this.calculateTime([phase]),
+      courseId: createdCourse._id,
+      phaseIndex: index,
+    }));
 
     const createdPhases = await this.phaseService.createPhase(phases);
 
     const tasks = courseDetails.phases.flatMap((phase, index) =>
-      phase.tasks.map((task, taskIndex) => {
-        const allocatedTime = calculateTime([{ ...phase, tasks: [task] }]);
-        return {
-          mainTask: task.mainTask,
-          allocatedTime,
-          phaseId: createdPhases[index]._id,
-          courseId: createdCourse._id,
-          taskIndex,
-        };
-      }),
+      phase.tasks.map((task, taskIndex) => ({
+        mainTask: task.mainTask,
+        allocatedTime: this.calculateTime([{ ...phase, tasks: [task] }]),
+        phaseId: createdPhases[index]._id,
+        courseId: createdCourse._id,
+        taskIndex,
+      })),
     );
 
     const createdTasks = await this.taskService.createTask(tasks);
@@ -77,7 +64,9 @@ export class TrainingService {
           estimatedTime: this.timeStringToSeconds(subTask.estimatedTime),
           courseId: createdCourse._id,
           phaseId: createdPhases[index]._id,
-          taskId: createdTasks[taskIndex]._id,
+          taskId: createdTasks.filter(
+            (task) => task.phaseId === createdPhases[index]._id,
+          )[taskIndex]._id,
           subTaskIndex,
         })),
       ),

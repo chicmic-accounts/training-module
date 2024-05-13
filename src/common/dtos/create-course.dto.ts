@@ -28,6 +28,12 @@ export class PhaseDto {
   tasks: Array<TaskDto>;
 }
 
+export class UpdatePhaseDto extends PhaseDto {
+  @IsString()
+  @IsNotEmpty()
+  _id: string;
+}
+
 export class TaskDto {
   @IsString()
   @IsNotEmpty()
