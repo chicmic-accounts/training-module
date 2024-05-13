@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CourseDto, CreateCourseDto } from 'src/common/dtos/create-course.dto';
 import { CourseService } from 'src/course/course.service';
 import { PhaseService } from 'src/phase/phase.service';
@@ -30,7 +30,12 @@ export class TrainingService {
       ...courseDetails,
       createdBy: userId,
       totalPhases: courseDetails.phases.length,
-      noOfTopics: totalTime,
+      noOfTopics: courseDetails.phases.reduce(
+        (acc, phase) =>
+          acc +
+          phase.tasks.reduce((acc, task) => acc + task.subtasks.length, 0),
+        0,
+      ),
       estimatedTime: totalTime,
     };
 
@@ -76,6 +81,7 @@ export class TrainingService {
 
     return { createdCourse, phases, tasks, subTasks };
   }
+
   /** FUNCION IMPLEMENTED TO CONVERT STRING TIME TO SECONDS */
   timeStringToSeconds(timeString) {
     // Split the time string into hours and minutes
@@ -93,5 +99,15 @@ export class TrainingService {
   /** FUNCTION IMPLEMENTED TO FETCH ALL COURSES */
   async getAllCourses(query: any) {
     return await this.courseService.getCourse(query);
+  }
+
+  /** FUNCTION IMPLEMENTED TO UPDATE APPROVERS */
+  async updateApprovers(approvers: string[], courseId: string) {
+    return await this.courseService.updateApprovers(approvers, courseId);
+  }
+
+  /** FUNCTION IMPLEMENTED TO DELETE COURSE */
+  async deleteCourse(courseId: string) {
+    return await this.courseService.deleteCourse(courseId);
   }
 }

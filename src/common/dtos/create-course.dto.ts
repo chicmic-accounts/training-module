@@ -67,3 +67,15 @@ export class CourseDto {
   noOfTopics: number;
   estimatedTime: number;
 }
+
+export class UpdateApproversQueryDto {
+  @IsString()
+  @IsNotEmpty()
+  courseId: string;
+}
+
+export class UpdateApproversDto {
+  @IsArray()
+  @IsNotEmpty()
+  approver: string[];
+}

@@ -15,11 +15,13 @@ export class CourseService {
     private readonly httpService: HttpService,
   ) {}
 
+  /** FUNCTION IMPLEMENTED TO CREATE COURSE */
   async createCourse(course: CourseDto) {
     const newCourse = this.courseModel.create(course);
     return newCourse;
   }
 
+  /** COMMON FUNCTION TO GET COURSE */
   async getCourse(query: any) {
     // Set default values for pagination
     query.sortKey = query?.sortKey || 'createdAt';
@@ -92,6 +94,7 @@ export class CourseService {
     return courseData;
   }
 
+  /**FETCH COURSE BY ID */
   async getCourseById(id: ObjectId) {
     id = new ObjectId(id);
     const course = await this.courseModel.aggregate([
@@ -102,18 +105,21 @@ export class CourseService {
           let: { courseId: '$_id' },
           pipeline: [
             { $match: { $expr: { $eq: ['$courseId', '$$courseId'] } } },
+            { $sort: { phaseIndex: 1 } },
             {
               $lookup: {
                 from: 'tasks',
                 let: { phaseId: '$_id' },
                 pipeline: [
                   { $match: { $expr: { $eq: ['$phaseId', '$$phaseId'] } } },
+                  { $sort: { taskIndex: 1 } },
                   {
                     $lookup: {
                       from: 'subtasks',
                       let: { taskId: '$_id' },
                       pipeline: [
                         { $match: { $expr: { $eq: ['$taskId', '$$taskId'] } } },
+                        { $sort: { subTaskIndex: 1 } },
                         {
                           $project: {
                             __v: 0,
@@ -162,5 +168,21 @@ export class CourseService {
       courses: course[0],
       total: 1,
     };
+  }
+
+  /** FUNCTION IMPLEMENTED TO UPDATE COURSE APPROVERS */
+  async updateApprovers(approvers: string[], courseId: string) {
+    return await this.courseModel.findByIdAndUpdate(
+      { _id: courseId },
+      { approver: approvers },
+    );
+  }
+
+  /** FUNCTION IMPLEMENTED TO DELETE COURSE */
+  async deleteCourse(courseId: string) {
+    return await this.courseModel.findByIdAndUpdate(
+      { _id: courseId },
+      { deleted: true },
+    );
   }
 }
