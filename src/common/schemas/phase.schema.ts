@@ -12,10 +12,16 @@ export class Phase {
   allocatedTime: number;
 
   @Prop({ required: true })
-  courseId: ObjectId;
+  courseId?: ObjectId;
 
   @Prop({ required: true })
   phaseIndex: number;
+
+  @Prop({ default: false })
+  deleted?: boolean;
+
+  @Prop({ default: null })
+  deletedBy?: ObjectId;
 }
 
 export const PhaseSchema = SchemaFactory.createForClass(Phase);

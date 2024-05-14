@@ -55,6 +55,17 @@ export class TrainingController {
     return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.APPROVER_ADDED, course);
   }
 
+  @Put('course/:id')
+  async updateCourse(
+    @Param('id') courseId: string,
+    @Body() body: any,
+    @Req() req: any,
+  ) {
+    body.userId = req.user.userId; /** adding userId to the body  */
+    const course = await this.trainingService.updateCourse(courseId, body);
+    return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.COURSE_FETCHED, course);
+  }
+
   @Delete('course/:id')
   async deleteCourse(@Param('id') courseId: string, @Req() req: any) {
     const course = await this.trainingService.deleteCourse(

@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { link } from 'fs';
+import { ObjectId } from 'mongodb';
 import {
   CourseDto,
   CreateCourseDto,
   UpdateApproversDto,
+  UpdateCourseDto,
+  UpdatePhaseDto,
 } from 'src/common/dtos/create-course.dto';
 import { CourseService } from 'src/course/course.service';
 import { PhaseService } from 'src/phase/phase.service';
@@ -113,5 +117,140 @@ export class TrainingService {
   /** FUNCTION IMPLEMENTED TO DELETE COURSE */
   async deleteCourse(courseId: string, userId: string) {
     return await this.courseService.deleteCourse(courseId, userId);
+  }
+
+  /**FUNCTION IMPLEMENTED TO UPDATE COURSE */
+  async updateCourse(courseId: string, body: UpdateCourseDto) {
+    const updatedCourseDetails = {
+      courseName: body.courseName,
+      figmaLink: body.figmaLink,
+      guidelines: body.guidelines,
+      approver: body.approver,
+      updatedBy: body.userId,
+    };
+
+    await this.courseService.updateCourse(updatedCourseDetails, courseId);
+
+    /** DONE TO FETCH PREVIOUS PHASE  */
+    const previousPhases = (
+      await this.phaseService.getPhases({ courseId })
+    ).map((phase) => phase._id);
+
+    const updatedPhases: Array<any> = [];
+
+    for (const phase of body.phases) {
+      const updatedPhase: UpdatePhaseDto = {
+        name: phase.name,
+        allocatedTime: this.calculateTime([phase]),
+        phaseIndex: body.phases.indexOf(phase),
+        courseId: new ObjectId(courseId),
+        tasks: phase.tasks,
+      };
+
+      let updatedPhaseDetails;
+      if (phase?.['_id']) {
+        updatedPhaseDetails = await this.phaseService.updatePhase(
+          updatedPhase,
+          phase['_id'],
+        );
+      } else {
+        updatedPhaseDetails = await this.phaseService.createPhase([
+          updatedPhase,
+        ]);
+        updatedPhaseDetails = updatedPhaseDetails[0];
+      }
+
+      updatedPhaseDetails.tasks = phase.tasks;
+      updatedPhases.push(updatedPhaseDetails);
+    }
+
+    /*** deleting all the phases which are not in use now */
+    for (const phase of updatedPhases) {
+      if (!previousPhases.includes(phase._id)) {
+        await this.phaseService.deletePhase(phase, body.userId);
+      }
+    }
+
+    /** UPDATING TASKS */
+    for (const phase of updatedPhases) {
+      const previousTasks = (await this.taskService.getTasks(phase._id)).map(
+        (task) => task._id,
+      );
+
+      for (const [index, task] of phase.tasks.entries()) {
+        const updatedTask = {
+          mainTask: task.mainTask,
+          allocatedTime: this.calculateTime([{ ...phase, tasks: [task] }]),
+          phaseId: phase._id,
+          courseId: new ObjectId(courseId),
+          taskIndex: phase.tasks.indexOf(task),
+        };
+
+        let updatedTaskDetails;
+        if (task?.['_id']) {
+          updatedTaskDetails = await this.taskService.updateTask(
+            updatedTask,
+            task['_id'],
+          );
+        } else {
+          updatedTaskDetails = await this.taskService.createTask([updatedTask]);
+          updatedTaskDetails = updatedTaskDetails[0];
+        }
+        phase.tasks[index] = updatedTaskDetails;
+        phase.tasks[index].subtasks = task.subtasks;
+      }
+
+      /*** deleting all the tasks which are not in use now */
+      for (const task of previousTasks) {
+        if (!previousTasks.includes(task._id)) {
+          await this.taskService.deleteTask(task._id, body.userId);
+        }
+      }
+    }
+
+    /** Updating subtasks */
+    for (const phase of updatedPhases) {
+      for (const task of phase.tasks) {
+        const previousSubTasks = (
+          await this.subTaskService.getSubTasks(task._id)
+        ).map((subTask) => subTask._id);
+
+        for (const [index, subTask] of task.subtasks.entries()) {
+          const updatedSubTask = {
+            subTask: subTask.subTask,
+            link: subTask.link,
+            estimatedTime: this.timeStringToSeconds(subTask.estimatedTime),
+            courseId: courseId,
+            phaseId: phase._id,
+            taskId: task._id,
+            subTaskIndex: task.subtasks.indexOf(subTask),
+          };
+
+          let updatedSubTaskDetails;
+          if (subTask?.['_id']) {
+            updatedSubTaskDetails = await this.subTaskService.updateSubTask(
+              updatedSubTask,
+              subTask['_id'],
+            );
+          } else {
+            updatedSubTaskDetails = await this.subTaskService.createSubTask([
+              updatedSubTask,
+            ]);
+            updatedSubTaskDetails = updatedSubTaskDetails[0];
+          }
+          task.subtasks[index] = updatedSubTaskDetails;
+        }
+
+        /*** deleting all the subtasks which are not in use now */
+        for (const subTask of previousSubTasks) {
+          if (!previousSubTasks.includes(subTask._id)) {
+            console.log('subTask', subTask);
+            // await this.subTaskService.deleteSubTask(subTask._id, body.userId);
+          }
+        }
+      }
+    }
+
+    return updatedPhases;
   }
 }

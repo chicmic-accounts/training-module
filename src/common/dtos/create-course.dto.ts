@@ -2,10 +2,12 @@ import {
   IsArray,
   IsBoolean,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   ValidateIf,
 } from 'class-validator';
+import { ObjectId } from 'mongodb';
 
 export class CreateCourseDto {
   @IsString()
@@ -38,7 +40,19 @@ export class PhaseDto {
 export class UpdatePhaseDto extends PhaseDto {
   @IsString()
   @IsNotEmpty()
-  _id: string;
+  _id?: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  allocatedTime: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  phaseIndex: number;
+
+  @IsString()
+  @IsNotEmpty()
+  courseId: ObjectId;
 }
 
 export class TaskDto {
@@ -92,6 +106,12 @@ export class UpdateApproversDto {
   @IsBoolean()
   approved: boolean;
 
+  @IsOptional()
+  @IsString()
+  userId: string;
+}
+
+export class UpdateCourseDto extends CreateCourseDto {
   @IsOptional()
   @IsString()
   userId: string;

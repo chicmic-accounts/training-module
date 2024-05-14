@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { ObjectId } from 'mongodb';
 import { Model } from 'mongoose';
 import { SubTask } from 'src/common/schemas/subtask.schema';
 
@@ -15,5 +16,28 @@ export class SubTaskService {
     } catch (error) {
       throw new HttpException(error, HttpStatus.BAD_REQUEST);
     }
+  }
+
+  async getSubTasks(taskId: string) {
+    return await this.subTaskModel.find({
+      taskId: taskId,
+      deleted: false,
+    });
+  }
+
+  async updateSubTask(subTaskDetails: any, subTaskId: string) {
+    return await this.subTaskModel.findOneAndUpdate(
+      { _id: subTaskId },
+      subTaskDetails,
+      { new: true },
+    );
+  }
+
+  async deleteSubTask(subTaskId: ObjectId, userId: string) {
+    return await this.subTaskModel.findOneAndUpdate(
+      { _id: subTaskId },
+      { deleted: true, deletedBy: userId },
+      { new: true },
+    );
   }
 }

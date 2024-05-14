@@ -51,6 +51,17 @@ export class CourseService {
           return userIdToNameMap[approverId];
         },
       );
+
+      /**DONE TO TRANSFORM TIME  */
+      courseData.courses['phases']?.forEach((phase) => {
+        phase.allocatedTime = this.secondsToHHMM(phase.allocatedTime);
+        phase['tasks']?.forEach((task) => {
+          task.allocatedTime = this.secondsToHHMM(task.allocatedTime);
+          task['subtasks']?.forEach((subtask) => {
+            subtask.estimatedTime = this.secondsToHHMM(subtask.estimatedTime);
+          });
+        });
+      });
     } else {
       courseData = await this.getAllCourses(query);
 
@@ -212,5 +223,35 @@ export class CourseService {
       { _id: courseId },
       { deleted: true, deletedBy: userId },
     );
+  }
+
+  /** FUNCTION IMPLEMENTED TO UPDATE A COURSE */
+  async updateCourse(updatedCourseDetails: any, courseId: string) {
+    return await this.courseModel.findByIdAndUpdate(
+      { _id: courseId },
+      updatedCourseDetails,
+      { new: true },
+    );
+  }
+
+  /** FUNCTION IMPLEMENTED TO TRANSFORM TIME IN HH:MM FORMAT */
+  secondsToHHMM(seconds) {
+    // Ensure seconds is a number
+    if (typeof seconds !== 'number' || isNaN(seconds)) {
+      throw new Error(
+        'Invalid input. Please provide a valid number of seconds.',
+      );
+    }
+
+    // Calculate hours and minutes
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+
+    // Format hours and minutes
+    const formattedHours = String(hours).padStart(2, '0');
+    const formattedMinutes = String(minutes).padStart(2, '0');
+
+    // Return formatted time
+    return `${formattedHours}:${formattedMinutes}`;
   }
 }
