@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { CourseDto, CreateCourseDto } from 'src/common/dtos/create-course.dto';
+import {
+  CourseDto,
+  CreateCourseDto,
+  UpdateApproversDto,
+} from 'src/common/dtos/create-course.dto';
 import { CourseService } from 'src/course/course.service';
 import { PhaseService } from 'src/phase/phase.service';
 import { SubTaskService } from 'src/sub-task/sub-task.service';
@@ -102,8 +106,8 @@ export class TrainingService {
   }
 
   /** FUNCTION IMPLEMENTED TO UPDATE APPROVERS */
-  async updateApprovers(approvers: string[], courseId: string) {
-    return await this.courseService.updateApprovers(approvers, courseId);
+  async updateApprovers(body: UpdateApproversDto, courseId: string) {
+    return await this.courseService.updateApprovers(body, courseId);
   }
 
   /** FUNCTION IMPLEMENTED TO DELETE COURSE */

@@ -45,9 +45,11 @@ export class TrainingController {
   async updateApprovers(
     @Body() body: UpdateApproversDto,
     @Query() query: UpdateApproversQueryDto,
+    @Req() req: any,
   ) {
+    body.userId = req.user.userId; /** adding userId to the body  */
     const course = await this.trainingService.updateApprovers(
-      body.approver,
+      body,
       query.courseId,
     );
     return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.APPROVER_ADDED, course);

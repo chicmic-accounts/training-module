@@ -1,4 +1,11 @@
-import { IsArray, IsNotEmpty, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 
 export class CreateCourseDto {
   @IsString()
@@ -75,7 +82,17 @@ export class UpdateApproversQueryDto {
 }
 
 export class UpdateApproversDto {
+  @ValidateIf((object, value) => value === undefined)
+  @IsOptional()
   @IsArray()
-  @IsNotEmpty()
   approver: string[];
+
+  @ValidateIf((object, value) => value === undefined)
+  @IsOptional()
+  @IsBoolean()
+  approved: boolean;
+
+  @IsOptional()
+  @IsString()
+  userId: string;
 }

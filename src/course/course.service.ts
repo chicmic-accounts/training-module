@@ -1,9 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ObjectId } from 'mongodb';
 import { Model } from 'mongoose';
 import { DEFAULT_PAGINATION } from 'src/common/constants/constant';
-import { CourseDto } from 'src/common/dtos/create-course.dto';
+import { MESSAGE } from 'src/common/constants/message';
+import {
+  CourseDto,
+  UpdateApproversDto,
+} from 'src/common/dtos/create-course.dto';
 import { Course } from 'src/common/schemas/course.schema';
 import { HttpService } from 'src/common/services/http.service';
 
@@ -54,6 +58,9 @@ export class CourseService {
       courseData.courses.forEach((course) => {
         course['createdByName'] = userIdToNameMap[course?.createdBy]?.name;
         course['approver'] = course?.approver?.map((approverId) => {
+          return userIdToNameMap[approverId];
+        });
+        course['approvedBy'] = course?.approvedBy?.map((approverId) => {
           return userIdToNameMap[approverId];
         });
       });
@@ -172,11 +179,31 @@ export class CourseService {
   }
 
   /** FUNCTION IMPLEMENTED TO UPDATE COURSE APPROVERS */
-  async updateApprovers(approvers: string[], courseId: string) {
-    return await this.courseModel.findByIdAndUpdate(
-      { _id: courseId },
-      { approver: approvers },
-    );
+  async updateApprovers(body: UpdateApproversDto, courseId: string) {
+    if (body?.approved) {
+      const course = await this.courseModel.findOne({ _id: courseId });
+      if (!course) {
+        throw new HttpException(
+          MESSAGE.ERROR_MESSAGE.COURSE_NOT_FOUND,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      if (course.approvedBy.includes(body.userId)) {
+        throw new HttpException(
+          MESSAGE.ERROR_MESSAGE.APPROVER_ALREADY_EXISTS,
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      /** ADDING NEW APPROVER TO THE APPROVED BY LIST  */
+      course.approvedBy.push(body.userId);
+      body['approvedBy'] = course.approvedBy;
+    }
+
+    return await this.courseModel.findByIdAndUpdate({ _id: courseId }, body, {
+      new: true,
+    });
   }
 
   /** FUNCTION IMPLEMENTED TO DELETE COURSE */
