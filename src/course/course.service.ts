@@ -65,6 +65,7 @@ export class CourseService {
   /** FUNCTION IMPLEMENTED TO GET ALL THE COURSES */
   async getAllCourses(query: any) {
     const courses = await this.courseModel.aggregate([
+      { $match: { deleted: false } },
       {
         $facet: {
           totalCount: [{ $count: 'total' }],
