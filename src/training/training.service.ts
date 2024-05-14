@@ -107,7 +107,7 @@ export class TrainingService {
   }
 
   /** FUNCTION IMPLEMENTED TO DELETE COURSE */
-  async deleteCourse(courseId: string) {
-    return await this.courseService.deleteCourse(courseId);
+  async deleteCourse(courseId: string, userId: string) {
+    return await this.courseService.deleteCourse(courseId, userId);
   }
 }

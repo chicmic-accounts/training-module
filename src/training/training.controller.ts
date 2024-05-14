@@ -54,8 +54,11 @@ export class TrainingController {
   }
 
   @Delete('course/:id')
-  async deleteCourse(@Param('id') courseId: string) {
-    const course = await this.trainingService.deleteCourse(courseId);
+  async deleteCourse(@Param('id') courseId: string, @Req() req: any) {
+    const course = await this.trainingService.deleteCourse(
+      courseId,
+      req.user.userId,
+    );
     return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.COURSE_DELETED, course);
   }
 }

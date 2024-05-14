@@ -179,10 +179,10 @@ export class CourseService {
   }
 
   /** FUNCTION IMPLEMENTED TO DELETE COURSE */
-  async deleteCourse(courseId: string) {
+  async deleteCourse(courseId: string, userId: string) {
     return await this.courseModel.findByIdAndUpdate(
       { _id: courseId },
-      { deleted: true },
+      { deleted: true, deletedBy: userId },
     );
   }
 }
