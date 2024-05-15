@@ -123,7 +123,16 @@ export class CourseService {
           from: 'phases',
           let: { courseId: '$_id' },
           pipeline: [
-            { $match: { $expr: { $eq: ['$courseId', '$$courseId'] } } },
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$courseId', '$$courseId'] },
+                    { $eq: ['$deleted', false] },
+                  ],
+                },
+              },
+            },
             { $sort: { phaseIndex: 1 } },
             {
               $lookup: {

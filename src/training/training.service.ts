@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { link } from 'fs';
 import { ObjectId } from 'mongodb';
 import {
   CourseDto,
@@ -134,7 +133,7 @@ export class TrainingService {
     /** DONE TO FETCH PREVIOUS PHASE  */
     const previousPhases = (
       await this.phaseService.getPhases({ courseId })
-    ).map((phase) => phase._id);
+    ).map((phase) => phase._id.toString());
 
     const updatedPhases: Array<any> = [];
 
@@ -158,6 +157,7 @@ export class TrainingService {
           updatedPhase,
         ]);
         updatedPhaseDetails = updatedPhaseDetails[0];
+        previousPhases.push(updatedPhaseDetails._id);
       }
 
       updatedPhaseDetails.tasks = phase.tasks;
@@ -165,18 +165,20 @@ export class TrainingService {
     }
 
     /*** deleting all the phases which are not in use now */
-    for (const phase of updatedPhases) {
-      if (!previousPhases.includes(phase._id)) {
-        await this.phaseService.deletePhase(phase, body.userId);
-      }
-    }
+
+    const phasesToDelete = previousPhases.filter(
+      (phaseId) =>
+        !updatedPhases.some((phase) => phase._id == phaseId.toString()),
+    );
+
+    await Promise.all(
+      phasesToDelete.map((phase) =>
+        this.phaseService.deletePhase(phase, body.userId),
+      ),
+    );
 
     /** UPDATING TASKS */
     for (const phase of updatedPhases) {
-      const previousTasks = (await this.taskService.getTasks(phase._id)).map(
-        (task) => task._id,
-      );
-
       for (const [index, task] of phase.tasks.entries()) {
         const updatedTask = {
           mainTask: task.mainTask,
@@ -199,22 +201,11 @@ export class TrainingService {
         phase.tasks[index] = updatedTaskDetails;
         phase.tasks[index].subtasks = task.subtasks;
       }
-
-      /*** deleting all the tasks which are not in use now */
-      for (const task of previousTasks) {
-        if (!previousTasks.includes(task._id)) {
-          await this.taskService.deleteTask(task._id, body.userId);
-        }
-      }
     }
 
     /** Updating subtasks */
     for (const phase of updatedPhases) {
       for (const task of phase.tasks) {
-        const previousSubTasks = (
-          await this.subTaskService.getSubTasks(task._id)
-        ).map((subTask) => subTask._id);
-
         for (const [index, subTask] of task.subtasks.entries()) {
           const updatedSubTask = {
             subTask: subTask.subTask,
@@ -239,14 +230,6 @@ export class TrainingService {
             updatedSubTaskDetails = updatedSubTaskDetails[0];
           }
           task.subtasks[index] = updatedSubTaskDetails;
-        }
-
-        /*** deleting all the subtasks which are not in use now */
-        for (const subTask of previousSubTasks) {
-          if (!previousSubTasks.includes(subTask._id)) {
-            console.log('subTask', subTask);
-            // await this.subTaskService.deleteSubTask(subTask._id, body.userId);
-          }
         }
       }
     }
