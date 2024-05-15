@@ -13,7 +13,10 @@ export class AuthGuard implements CanActivate {
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
     const request = context.switchToHttp().getRequest();
-    const headers = JSON.parse(request.headers.usermeta);
+    if (!request?.headers?.usermeta) {
+      throw new HttpException('Unauthorized access', HttpStatus.UNAUTHORIZED);
+    }
+    const headers = JSON.parse(request?.headers?.usermeta);
     request['user'] = {
       userId: headers?.user._id,
       role: headers?.user.role,
