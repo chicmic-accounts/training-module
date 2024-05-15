@@ -126,18 +126,23 @@ export class TrainingService {
       guidelines: body.guidelines,
       approver: body.approver,
       updatedBy: body.userId,
+      totalPhases: body.phases.length,
+      estimatedTime: this.calculateTime(body.phases),
+      noOfTopics: body.phases.reduce(
+        (acc, phase) =>
+          acc +
+          phase.tasks.reduce((acc, task) => acc + task.subtasks.length, 0),
+        0,
+      ),
     };
 
     await this.courseService.updateCourse(updatedCourseDetails, courseId);
 
-    /** DONE TO FETCH PREVIOUS PHASE  */
     const previousPhases = (
       await this.phaseService.getPhases({ courseId })
     ).map((phase) => phase._id.toString());
 
-    const updatedPhases: Array<any> = [];
-
-    for (const phase of body.phases) {
+    const updatedPhasesPromises = body.phases.map(async (phase) => {
       const updatedPhase: UpdatePhaseDto = {
         name: phase.name,
         allocatedTime: this.calculateTime([phase]),
@@ -161,10 +166,10 @@ export class TrainingService {
       }
 
       updatedPhaseDetails.tasks = phase.tasks;
-      updatedPhases.push(updatedPhaseDetails);
-    }
+      return updatedPhaseDetails;
+    });
 
-    /*** deleting all the phases which are not in use now */
+    let updatedPhases = await Promise.all(updatedPhasesPromises);
 
     const phasesToDelete = previousPhases.filter(
       (phaseId) =>
@@ -177,62 +182,76 @@ export class TrainingService {
       ),
     );
 
-    /** UPDATING TASKS */
-    for (const phase of updatedPhases) {
-      for (const [index, task] of phase.tasks.entries()) {
-        const updatedTask = {
-          mainTask: task.mainTask,
-          allocatedTime: this.calculateTime([{ ...phase, tasks: [task] }]),
-          phaseId: phase._id,
-          courseId: new ObjectId(courseId),
-          taskIndex: phase.tasks.indexOf(task),
-        };
-
-        let updatedTaskDetails;
-        if (task?.['_id']) {
-          updatedTaskDetails = await this.taskService.updateTask(
-            updatedTask,
-            task['_id'],
-          );
-        } else {
-          updatedTaskDetails = await this.taskService.createTask([updatedTask]);
-          updatedTaskDetails = updatedTaskDetails[0];
-        }
-        phase.tasks[index] = updatedTaskDetails;
-        phase.tasks[index].subtasks = task.subtasks;
-      }
-    }
-
-    /** Updating subtasks */
-    for (const phase of updatedPhases) {
-      for (const task of phase.tasks) {
-        for (const [index, subTask] of task.subtasks.entries()) {
-          const updatedSubTask = {
-            subTask: subTask.subTask,
-            link: subTask.link,
-            estimatedTime: this.timeStringToSeconds(subTask.estimatedTime),
-            courseId: courseId,
+    const updateTasksPromises = updatedPhases.map(async (phase) => {
+      const updatedTasks = await Promise.all(
+        phase.tasks.map(async (task, index) => {
+          const updatedTask = {
+            mainTask: task.mainTask,
+            allocatedTime: this.calculateTime([{ ...phase, tasks: [task] }]),
             phaseId: phase._id,
-            taskId: task._id,
-            subTaskIndex: task.subtasks.indexOf(subTask),
+            courseId: new ObjectId(courseId),
+            taskIndex: index,
           };
 
-          let updatedSubTaskDetails;
-          if (subTask?.['_id']) {
-            updatedSubTaskDetails = await this.subTaskService.updateSubTask(
-              updatedSubTask,
-              subTask['_id'],
+          let updatedTaskDetails;
+          if (task?.['_id']) {
+            updatedTaskDetails = await this.taskService.updateTask(
+              updatedTask,
+              task['_id'],
             );
           } else {
-            updatedSubTaskDetails = await this.subTaskService.createSubTask([
-              updatedSubTask,
+            updatedTaskDetails = await this.taskService.createTask([
+              updatedTask,
             ]);
-            updatedSubTaskDetails = updatedSubTaskDetails[0];
+            updatedTaskDetails = updatedTaskDetails[0];
           }
-          task.subtasks[index] = updatedSubTaskDetails;
-        }
+          updatedTaskDetails.subtasks = task.subtasks;
+          return updatedTaskDetails;
+        }),
+      );
+
+      phase.tasks = updatedTasks;
+      return phase;
+    });
+
+    updatedPhases = await Promise.all(updateTasksPromises);
+
+    const updateSubTasksPromises = updatedPhases.map(async (phase) => {
+      for (const task of phase.tasks) {
+        const updatedSubTasks = await Promise.all(
+          task.subtasks.map(async (subTask, index) => {
+            const updatedSubTask = {
+              subTask: subTask.subTask,
+              link: subTask.link,
+              estimatedTime: this.timeStringToSeconds(subTask.estimatedTime),
+              courseId: courseId,
+              phaseId: phase._id,
+              taskId: task._id,
+              subTaskIndex: index,
+            };
+
+            let updatedSubTaskDetails;
+            if (subTask?.['_id']) {
+              updatedSubTaskDetails = await this.subTaskService.updateSubTask(
+                updatedSubTask,
+                subTask['_id'],
+              );
+            } else {
+              updatedSubTaskDetails = await this.subTaskService.createSubTask([
+                updatedSubTask,
+              ]);
+              updatedSubTaskDetails = updatedSubTaskDetails[0];
+            }
+            return updatedSubTaskDetails;
+          }),
+        );
+
+        task.subtasks = updatedSubTasks;
       }
-    }
+      return phase;
+    });
+
+    updatedPhases = await Promise.all(updateSubTasksPromises);
 
     return updatedPhases;
   }

@@ -63,7 +63,7 @@ export class TrainingController {
   ) {
     body.userId = req.user.userId; /** adding userId to the body  */
     const course = await this.trainingService.updateCourse(courseId, body);
-    return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.COURSE_FETCHED, course);
+    return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.COURSE_UPDATED, course);
   }
 
   @Delete('course/:id')
