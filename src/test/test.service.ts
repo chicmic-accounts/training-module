@@ -17,8 +17,15 @@ export class TestService {
 
   /** FUNCTION IMPLEMENTED TO CREATE COURSE */
   async createTest(test: TestDto) {
-    const newTest = this.testModel.create(test);
-    return newTest;
+    try {
+      const newTest = await this.testModel.create(test);
+      return newTest;
+    } catch (error) {
+      throw new HttpException(
+        error.message || MESSAGE.ERROR_MESSAGE.TEST_CREATION_FAILED,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   /** COMMON FUNCTION TO GET COURSE */
