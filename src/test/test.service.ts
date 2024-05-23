@@ -4,29 +4,25 @@ import { ObjectId } from 'mongodb';
 import { Model } from 'mongoose';
 import { DEFAULT_PAGINATION } from 'src/common/constants/constant';
 import { MESSAGE } from 'src/common/constants/message';
-import {
-  CourseDto,
-  UpdateApproversDto,
-} from 'src/common/dtos/create-course.dto';
-import { Course } from 'src/common/schemas/course.schema';
+import { TestDto, UpdateApproversDto } from 'src/common/dtos/test.dto';
+import { Test } from 'src/common/schemas/test.schema';
 import { HttpService } from 'src/common/services/http.service';
 
 @Injectable()
-export class CourseService {
+export class TestService {
   constructor(
-    // Inject the CourseModel token
-    @InjectModel(Course.name) private readonly courseModel: Model<Course>,
+    @InjectModel(Test.name) private testModel: Model<Test>,
     private readonly httpService: HttpService,
   ) {}
 
   /** FUNCTION IMPLEMENTED TO CREATE COURSE */
-  async createCourse(course: CourseDto) {
-    const newCourse = this.courseModel.create(course);
-    return newCourse;
+  async createTest(test: TestDto) {
+    const newTest = this.testModel.create(test);
+    return newTest;
   }
 
   /** COMMON FUNCTION TO GET COURSE */
-  async getCourse(query: any) {
+  async getTests(query: any) {
     // Set default values for pagination
     query.sortKey = query?.sortKey || 'createdAt';
     query.sortDirection = +query?.sortDirection || -1;
@@ -34,34 +30,45 @@ export class CourseService {
     query.limit = +query?.limit || DEFAULT_PAGINATION.LIMIT;
 
     const userDataResponse = await this.httpService.get('v1/dropdown/user');
+    const teamsDataResponse = await this.httpService.get('v1/dropdown/team');
+    const teamsData = teamsDataResponse?.data?.data; // Assuming team data is in teamsData.data or similar format
     const userData = userDataResponse.data; // Assuming user data is in userData.data or similar format
 
     // Create a map of user IDs to names
     const userIdToNameMap = {};
+    const teamIdToTeamMap = {};
     userData.forEach((user) => {
       userIdToNameMap[user._id] = { name: user.name, _id: user._id };
     });
 
-    let courseData;
-    if (query?.courseId) {
-      courseData = await this.getCourseById(query.courseId);
+    teamsData.forEach((user) => {
+      teamIdToTeamMap[user._id] = { name: user.name, _id: user._id };
+    });
 
-      courseData.courses['approver'] = courseData?.courses?.approver?.map(
+    let testData;
+    if (query?.testId) {
+      testData = await this.getTestById(query.testId);
+
+      testData.tests['approver'] = testData?.tests?.approver?.map(
         (approverId) => {
           return userIdToNameMap[approverId];
         },
       );
 
-      courseData.courses['approvedBy'] = courseData?.courses?.approvedBy?.map(
+      testData.tests['teams'] = testData?.tests?.teams?.map((teamId) => {
+        return teamIdToTeamMap[teamId];
+      });
+
+      testData.tests['approvedBy'] = testData?.tests?.approvedBy?.map(
         (teamId) => {
           return userIdToNameMap[teamId];
         },
       );
 
       /**DONE TO TRANSFORM TIME  */
-      courseData.courses['phases']?.forEach((phase) => {
-        phase.allocatedTime = this.secondsToHHMM(phase.allocatedTime);
-        phase['tasks']?.forEach((task) => {
+      testData.tests['milestones']?.forEach((milestone) => {
+        milestone.allocatedTime = this.secondsToHHMM(milestone.allocatedTime);
+        milestone['tasks']?.forEach((task) => {
           task.allocatedTime = this.secondsToHHMM(task.allocatedTime);
           task['subtasks']?.forEach((subtask) => {
             subtask.estimatedTime = this.secondsToHHMM(subtask.estimatedTime);
@@ -69,31 +76,33 @@ export class CourseService {
         });
       });
     } else {
-      courseData = await this.getAllCourses(query);
-
+      testData = await this.getAllTests(query);
       // Iterate through courses and replace user IDs with names
-      courseData.courses.forEach((course) => {
-        course['createdByName'] = userIdToNameMap[course?.createdBy]?.name;
-        course['approver'] = course?.approver?.map((approverId) => {
+      testData.tests.forEach((test) => {
+        test['createdByName'] = userIdToNameMap[test?.createdBy]?.name;
+        test['approver'] = test?.approver?.map((approverId) => {
           return userIdToNameMap[approverId];
         });
-        course['approvedBy'] = course?.approvedBy?.map((approverId) => {
+        test['approvedBy'] = test?.approvedBy?.map((approverId) => {
           return userIdToNameMap[approverId];
+        });
+        test['teams'] = test?.teams?.map((teamId) => {
+          return teamIdToTeamMap[teamId];
         });
       });
     }
 
-    return courseData;
+    return testData;
   }
 
   /** FUNCTION IMPLEMENTED TO GET ALL THE COURSES */
-  async getAllCourses(query: any) {
-    const courses = await this.courseModel.aggregate([
+  async getAllTests(query: any) {
+    const tests = await this.testModel.aggregate([
       { $match: { deleted: false } },
       {
         $facet: {
           totalCount: [{ $count: 'total' }],
-          courseData: [
+          testData: [
             { $sort: { [query.sortKey]: query.sortDirection } },
             { $skip: query?.index },
             { $limit: query?.limit },
@@ -111,41 +120,45 @@ export class CourseService {
       },
     ]);
 
-    const courseData = {
-      courses: courses[0].courseData,
-      total: courses[0].totalCount[0]?.total || 0,
+    const testData = {
+      tests: tests[0].testData,
+      total: tests[0].totalCount[0]?.total || 0,
     };
 
-    return courseData;
+    return testData;
   }
 
   /**FETCH COURSE BY ID */
-  async getCourseById(id: ObjectId) {
+  async getTestById(id: ObjectId) {
     id = new ObjectId(id);
-    const course = await this.courseModel.aggregate([
+    const test = await this.testModel.aggregate([
       { $match: { _id: id } },
       {
         $lookup: {
-          from: 'phases',
-          let: { courseId: '$_id' },
+          from: 'milestones',
+          let: { testId: '$_id' },
           pipeline: [
             {
               $match: {
                 $expr: {
                   $and: [
-                    { $eq: ['$courseId', '$$courseId'] },
+                    { $eq: ['$testId', '$$testId'] },
                     { $eq: ['$deleted', false] },
                   ],
                 },
               },
             },
-            { $sort: { phaseIndex: 1 } },
+            { $sort: { milestoneIndex: 1 } },
             {
               $lookup: {
                 from: 'tasks',
-                let: { phaseId: '$_id' },
+                let: { milestoneId: '$_id' },
                 pipeline: [
-                  { $match: { $expr: { $eq: ['$phaseId', '$$phaseId'] } } },
+                  {
+                    $match: {
+                      $expr: { $eq: ['$milestoneId', '$$milestoneId'] },
+                    },
+                  },
                   { $sort: { taskIndex: 1 } },
                   {
                     $lookup: {
@@ -194,28 +207,28 @@ export class CourseService {
               },
             },
           ],
-          as: 'phases',
+          as: 'milestones',
         },
       },
     ]);
     return {
-      courses: course[0],
+      tests: test[0],
       total: 1,
     };
   }
 
   /** FUNCTION IMPLEMENTED TO UPDATE COURSE APPROVERS */
-  async updateApprovers(body: UpdateApproversDto, courseId: string) {
+  async updateApprovers(body: UpdateApproversDto, testId: string) {
     if (body?.approved) {
-      const course = await this.courseModel.findOne({ _id: courseId });
-      if (!course) {
+      const test = await this.testModel.findOne({ _id: testId });
+      if (!test) {
         throw new HttpException(
           MESSAGE.ERROR_MESSAGE.COURSE_NOT_FOUND,
           HttpStatus.NOT_FOUND,
         );
       }
 
-      if (course.approvedBy.includes(body.userId)) {
+      if (test.approvedBy.includes(body.userId)) {
         throw new HttpException(
           MESSAGE.ERROR_MESSAGE.APPROVER_ALREADY_EXISTS,
           HttpStatus.CONFLICT,
@@ -223,28 +236,28 @@ export class CourseService {
       }
 
       /** ADDING NEW APPROVER TO THE APPROVED BY LIST  */
-      course.approvedBy.push(body.userId);
-      body['approvedBy'] = course.approvedBy;
+      test.approvedBy.push(body.userId);
+      body['approvedBy'] = test.approvedBy;
     }
 
-    return await this.courseModel.findByIdAndUpdate({ _id: courseId }, body, {
+    return await this.testModel.findByIdAndUpdate({ _id: testId }, body, {
       new: true,
     });
   }
 
   /** FUNCTION IMPLEMENTED TO DELETE COURSE */
-  async deleteCourse(courseId: string, userId: string) {
-    return await this.courseModel.findByIdAndUpdate(
-      { _id: courseId },
+  async deleteTest(testId: string, userId: string) {
+    return await this.testModel.findByIdAndUpdate(
+      { _id: testId },
       { deleted: true, deletedBy: userId },
     );
   }
 
   /** FUNCTION IMPLEMENTED TO UPDATE A COURSE */
-  async updateCourse(updatedCourseDetails: any, courseId: string) {
-    return await this.courseModel.findByIdAndUpdate(
-      { _id: courseId },
-      updatedCourseDetails,
+  async updateTest(updatedTestDetails: any, testId: string) {
+    return await this.testModel.findByIdAndUpdate(
+      { _id: testId },
+      updatedTestDetails,
       { new: true },
     );
   }

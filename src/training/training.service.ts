@@ -7,20 +7,26 @@ import {
   UpdateCourseDto,
   UpdatePhaseDto,
 } from 'src/common/dtos/create-course.dto';
+import { CreateTestDto, TestDto } from 'src/common/dtos/test.dto';
 import { CourseService } from 'src/course/course.service';
+import { MilestoneService } from 'src/milestone/milestone.service';
 import { PhaseService } from 'src/phase/phase.service';
 import { SubTaskService } from 'src/sub-task/sub-task.service';
 import { TaskService } from 'src/task/task.service';
+import { TestService } from 'src/test/test.service';
 
 @Injectable()
 export class TrainingService {
   constructor(
     private courseService: CourseService,
+    private testService: TestService,
     private phaseService: PhaseService,
     private taskService: TaskService,
     private subTaskService: SubTaskService,
+    private milestoneService: MilestoneService,
   ) {}
 
+  /** FUNCTION IMPLEMENTED CALCULATE TIME */
   calculateTime = (phases) =>
     phases
       .flatMap((phase) => phase.tasks.flatMap((task) => task.subtasks))
@@ -67,7 +73,9 @@ export class TrainingService {
       })),
     );
 
-    const createdTasks = await this.taskService.createTask(tasks);
+    const createdTasks = await this.taskService.createTask(
+      tasks.map((task) => ({ ...task, milestoneId: null })),
+    );
 
     const subTasks = courseDetails.phases.flatMap((phase, index) =>
       phase.tasks.flatMap((task, taskIndex) =>
@@ -196,12 +204,18 @@ export class TrainingService {
           let updatedTaskDetails;
           if (task?.['_id']) {
             updatedTaskDetails = await this.taskService.updateTask(
-              updatedTask,
+              {
+                ...updatedTask,
+                milestoneId: task.milestoneId,
+              },
               task['_id'],
             );
           } else {
             updatedTaskDetails = await this.taskService.createTask([
-              updatedTask,
+              {
+                ...updatedTask,
+                milestoneId: task.milestoneId,
+              },
             ]);
             updatedTaskDetails = updatedTaskDetails[0];
           }
@@ -254,5 +268,81 @@ export class TrainingService {
     updatedPhases = await Promise.all(updateSubTasksPromises);
 
     return updatedPhases;
+  }
+
+  /** FUNCTION IMPLEMENTED TO CREATE TEST */
+  async createTest(testDetails: CreateTestDto, userId: string) {
+    const totalTime = this.calculateTime(testDetails.milestones);
+
+    const test: TestDto = {
+      ...testDetails,
+      createdBy: userId,
+      totalMilestones: testDetails.milestones.length,
+      noOfTopics: testDetails.milestones.reduce(
+        (acc, milestone) =>
+          acc +
+          milestone.tasks.reduce((acc, task) => acc + task.subtasks.length, 0),
+        0,
+      ),
+      estimatedTime: totalTime,
+    };
+
+    const createdTest = await this.testService.createTest(test);
+
+    const milestones = testDetails.milestones.map((milestone, index) => ({
+      name: milestone.name,
+      allocatedTime: this.calculateTime([milestone]),
+      testId: createdTest._id,
+      milestoneIndex: index,
+    }));
+
+    const createdMilestones =
+      await this.milestoneService.createMilestone(milestones);
+
+    const tasks = testDetails.milestones.flatMap((milestone, index) =>
+      milestone.tasks.map((task, taskIndex) => ({
+        mainTask: task.mainTask,
+        allocatedTime: this.calculateTime([{ ...milestone, tasks: [task] }]),
+        milestoneId: createdMilestones[index]._id,
+        testId: createdTest._id,
+        taskIndex,
+      })),
+    );
+
+    const createdTasks = await this.taskService.createTask(
+      tasks.map((task, taskIndex) => ({
+        ...task,
+        phaseId: createdMilestones[taskIndex]._id,
+      })),
+    );
+
+    const subTasks = testDetails.milestones.flatMap((phase, index) =>
+      phase.tasks.flatMap((task, taskIndex) =>
+        task.subtasks.map((subTask, subTaskIndex) => ({
+          ...subTask,
+          estimatedTime: this.timeStringToSeconds(subTask.estimatedTime),
+          courseId: createdTest._id,
+          phaseId: createdMilestones[index]._id,
+          taskId: createdTasks.filter(
+            (task) => task.phaseId === createdMilestones[index]._id,
+          )[taskIndex]._id,
+          subTaskIndex,
+        })),
+      ),
+    );
+
+    await this.subTaskService.createSubTask(subTasks);
+
+    return { createdTest, milestones, tasks, subTasks };
+  }
+
+  /** FUNCTION IMPLEMENTED TO GET TEST */
+  async getTests(query: any) {
+    return await this.testService.getTests(query);
+  }
+
+  /** FUNCTION IMPLEMENTED TO UPDATE APPROVERS */
+  async updateTestApprovers(body: UpdateApproversDto, testId: string) {
+    return await this.testService.updateApprovers(body, testId);
   }
 }

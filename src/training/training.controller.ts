@@ -13,6 +13,7 @@ import {
   CreateCourseDto,
   UpdateApproversDto,
   UpdateApproversQueryDto,
+  UpdateTestApproversQueryDto,
 } from 'src/common/dtos/create-course.dto';
 import { TrainingService } from './training.service';
 import { COMMON_RESPONSE } from 'src/common/constants/common-response';
@@ -73,5 +74,38 @@ export class TrainingController {
       req.user.userId,
     );
     return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.COURSE_DELETED, course);
+  }
+
+  @Post('test')
+  async createTest(@Body() testDetails: any, @Req() req: any) {
+    const test = await this.trainingService.createTest(
+      testDetails,
+      req.user.userId,
+    );
+    return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.TEST_CREATED, test);
+  }
+
+  @Get('test')
+  async getAllTests(@Query() query: any) {
+    const testsData = await this.trainingService.getTests(query);
+    return COMMON_RESPONSE(
+      MESSAGE.SUCCESS_MESSAGE.COURSE_FETCHED,
+      testsData?.tests,
+      testsData?.total,
+    );
+  }
+
+  @Put('test')
+  async updateTestApprovers(
+    @Body() body: UpdateApproversDto,
+    @Query() query: UpdateTestApproversQueryDto,
+    @Req() req: any,
+  ) {
+    body.userId = req.user.userId; /** adding userId to the body  */
+    const course = await this.trainingService.updateTestApprovers(
+      body,
+      query.testId,
+    );
+    return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.TEST_UPDATED, course);
   }
 }

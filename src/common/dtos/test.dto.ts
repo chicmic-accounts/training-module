@@ -9,26 +9,24 @@ import {
 } from 'class-validator';
 import { ObjectId } from 'mongodb';
 
-export class CreateCourseDto {
+export class CreateTestDto {
   @IsString()
   @IsNotEmpty()
-  courseName: string;
+  testName: string;
 
-  @IsString()
-  figmaLink: string;
-
-  @IsString()
-  guidelines: string;
+  @IsArray()
+  @IsNotEmpty()
+  teams: string[];
 
   @IsArray()
   @IsNotEmpty()
   approver: string[];
 
   @IsNotEmpty()
-  phases: Array<PhaseDto>;
+  milestones: Array<MilestoneDto>;
 }
 
-export class PhaseDto {
+export class MilestoneDto {
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -37,7 +35,7 @@ export class PhaseDto {
   tasks: Array<TaskDto>;
 }
 
-export class UpdatePhaseDto extends PhaseDto {
+export class UpdateMilestoneDto extends MilestoneDto {
   @IsString()
   @IsNotEmpty()
   _id?: string;
@@ -78,28 +76,12 @@ export class subTaskDto {
   subTask: string;
 }
 
-export class CourseDto {
-  courseName: string;
-  figmaLink: string;
-  guidelines: string;
-  approver: string[];
-  createdBy: string;
-  totalPhases: number;
-  noOfTopics: number;
-  estimatedTime: number;
-}
-
 export class UpdateApproversQueryDto {
   @IsString()
   @IsNotEmpty()
   courseId: string;
 }
 
-export class UpdateTestApproversQueryDto {
-  @IsString()
-  @IsNotEmpty()
-  testId: string;
-}
 export class UpdateApproversDto {
   @ValidateIf((object, value) => value === undefined)
   @IsOptional()
@@ -116,8 +98,18 @@ export class UpdateApproversDto {
   userId: string;
 }
 
-export class UpdateCourseDto extends CreateCourseDto {
+export class UpdateTestDto extends MilestoneDto {
   @IsOptional()
   @IsString()
   userId: string;
+}
+
+export class TestDto {
+  testName: string;
+  approver: string[];
+  teams: string[];
+  createdBy: string;
+  totalMilestones: number;
+  noOfTopics: number;
+  estimatedTime: number;
 }

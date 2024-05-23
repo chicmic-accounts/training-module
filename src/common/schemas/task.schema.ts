@@ -11,8 +11,14 @@ export class Task {
   @Prop({ required: true })
   allocatedTime: number;
 
-  @Prop({ required: true })
-  courseId: ObjectId;
+  @Prop({ default: '' })
+  courseId?: ObjectId;
+
+  @Prop({ default: '' })
+  testId?: ObjectId;
+
+  @Prop({ default: '' })
+  milestoneId: ObjectId;
 
   @Prop({ required: true })
   phaseId: ObjectId;

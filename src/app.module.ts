@@ -9,6 +9,8 @@ import { TaskModule } from './task/task.module';
 import { SubTaskModule } from './sub-task/sub-task.module';
 import { TrainingModule } from './training/training.module';
 import { HttpService } from './common/services/http.service';
+import { TestModule } from './test/test.module';
+import { MilestoneModule } from './milestone/milestone.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { HttpService } from './common/services/http.service';
     TaskModule,
     SubTaskModule,
     TrainingModule,
+    TestModule,
+    MilestoneModule,
   ],
   controllers: [AppController],
   providers: [AppService, HttpService],

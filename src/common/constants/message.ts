@@ -14,5 +14,7 @@ export const MESSAGE = {
     APPROVER_ADDED: 'Approver added successfully',
     COURSE_DELETED: 'Course deleted successfully',
     COURSE_UPDATED: 'Course updated successfully',
+    TEST_CREATED: 'Test created successfully',
+    TEST_UPDATED: 'Test updated successfully',
   },
 };
