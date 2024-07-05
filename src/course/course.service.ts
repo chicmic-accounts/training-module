@@ -68,6 +68,10 @@ export class CourseService {
           });
         });
       });
+    } else if (query?.isDropdown && query?.isPhaseRequired) {
+      courseData = await this.getCoursesWithDetails();
+      courseData.courses = courseData[0].courses;
+      courseData.total = courseData[0].total[0].total;
     } else {
       courseData = await this.getAllCourses(query);
 
@@ -84,6 +88,106 @@ export class CourseService {
     }
 
     return courseData;
+  }
+
+  /** GET ALL COURSES WITH COMPLETE DETAILS */
+  getCoursesWithDetails() {
+    return this.courseModel.aggregate([
+      { $match: { deleted: false } },
+      {
+        $lookup: {
+          from: 'phases',
+          let: { courseId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$courseId', '$$courseId'] },
+                    { $eq: ['$deleted', false] },
+                  ],
+                },
+              },
+            },
+            { $sort: { phaseIndex: 1 } },
+            {
+              $lookup: {
+                from: 'tasks',
+                let: { phaseId: '$_id' },
+                pipeline: [
+                  { $match: { $expr: { $eq: ['$phaseId', '$$phaseId'] } } },
+                  { $sort: { taskIndex: 1 } },
+                  {
+                    $lookup: {
+                      from: 'subtasks',
+                      let: { taskId: '$_id' },
+                      pipeline: [
+                        { $match: { $expr: { $eq: ['$taskId', '$$taskId'] } } },
+                        { $sort: { subTaskIndex: 1 } },
+                        {
+                          $project: {
+                            __v: 0,
+                            courseId: 0,
+                            phaseId: 0,
+                            deleted: 0,
+                            taskId: 0,
+                            subTaskIndex: 0,
+                            createdAt: 0,
+                            updatedAt: 0,
+                          },
+                        },
+                      ],
+                      as: 'subtasks',
+                    },
+                  },
+                  {
+                    $project: {
+                      __v: 0,
+                      courseId: 0,
+                      phaseId: 0,
+                      taskId: 0,
+                      deleted: 0,
+                      taskIndex: 0,
+                      createdAt: 0,
+                      updatedAt: 0,
+                    },
+                  },
+                ],
+                as: 'tasks',
+              },
+            },
+            {
+              $project: {
+                __v: 0,
+                courseId: 0,
+                createdAt: 0,
+                deleted: 0,
+                updatedAt: 0,
+                phaseIndex: 0,
+              },
+            },
+          ],
+          as: 'phases',
+        },
+      },
+      {
+        $facet: {
+          total: [{ $count: 'total' }],
+          courses: [
+            { $sort: { createdAt: -1 } },
+            {
+              $project: {
+                createdAt: 0,
+                updatedAt: 0,
+                __v: 0,
+                deletedBy: 0,
+                deleted: 0,
+              },
+            },
+          ],
+        },
+      },
+    ]);
   }
 
   /** FUNCTION IMPLEMENTED TO GET ALL THE COURSES */

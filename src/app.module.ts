@@ -11,6 +11,7 @@ import { TrainingModule } from './training/training.module';
 import { HttpService } from './common/services/http.service';
 import { TestModule } from './test/test.module';
 import { MilestoneModule } from './milestone/milestone.module';
+import { PlanModule } from './plan/plan.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { MilestoneModule } from './milestone/milestone.module';
     TrainingModule,
     TestModule,
     MilestoneModule,
+    PlanModule,
   ],
   controllers: [AppController],
   providers: [AppService, HttpService],
