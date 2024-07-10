@@ -91,8 +91,8 @@ export class CourseService {
   }
 
   /** GET ALL COURSES WITH COMPLETE DETAILS */
-  getCoursesWithDetails() {
-    return this.courseModel.aggregate([
+  async getCoursesWithDetails() {
+    const courses: {} = await this.courseModel.aggregate([
       { $match: { deleted: false } },
       {
         $lookup: {
@@ -188,6 +188,18 @@ export class CourseService {
         },
       },
     ]);
+    courses[0].courses.forEach((course) => {
+      course.phases.forEach((phase) => {
+        phase.estimatedTime = this.secondsToHHMM(phase.allocatedTime);
+        phase.tasks.forEach((task) => {
+          task.estimatedTime = this.secondsToHHMM(task.allocatedTime);
+          task.subtasks.forEach((subtask) => {
+            subtask.estimatedTime = this.secondsToHHMM(subtask.estimatedTime);
+          });
+        });
+      });
+    });
+    return courses;
   }
 
   /** FUNCTION IMPLEMENTED TO GET ALL THE COURSES */
