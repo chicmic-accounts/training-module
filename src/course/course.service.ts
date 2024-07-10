@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ObjectId } from 'mongodb';
 import { Model } from 'mongoose';
-import { DEFAULT_PAGINATION } from 'src/common/constants/constant';
+import { API_ROUTES, DEFAULT_PAGINATION } from 'src/common/constants/constant';
 import { MESSAGE } from 'src/common/constants/message';
 import {
   CourseDto,
@@ -33,7 +33,7 @@ export class CourseService {
     query.index = +query?.index || DEFAULT_PAGINATION.SKIP;
     query.limit = +query?.limit || DEFAULT_PAGINATION.LIMIT;
 
-    const userDataResponse = await this.httpService.get('v1/dropdown/user');
+    const userDataResponse = await this.httpService.get(API_ROUTES.GET_USERS);
     const userData = userDataResponse.data; // Assuming user data is in userData.data or similar format
 
     // Create a map of user IDs to names
@@ -331,9 +331,33 @@ export class CourseService {
       body['approvedBy'] = course.approvedBy;
     }
 
-    return await this.courseModel.findByIdAndUpdate({ _id: courseId }, body, {
-      new: true,
-    });
+    try {
+      const users = await this.httpService.get(API_ROUTES.GET_USERS);
+      
+      const updatedCourse = await this.courseModel.findByIdAndUpdate({ _id: courseId }, body, {
+        new: true,
+      });
+
+      /** MODIFICATION TO THE RESPONSE IS DONE */
+      updatedCourse.approver = updatedCourse.approver.map((approverId) => {
+        return users.data.find((user) => user._id === approverId);
+      });
+
+      updatedCourse.approvedBy = updatedCourse.approvedBy.map((teamId) => {
+        return users.data.find((user) => user._id === teamId);
+      });
+
+      updatedCourse.createdBy = users.data.find((user) => user._id === updatedCourse.createdBy);
+
+      return updatedCourse;
+    }
+    catch (error) {
+      throw new HttpException(
+        MESSAGE.ERROR_MESSAGE.UNABLE_TO_FETCH_USERS,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
   }
 
   /** FUNCTION IMPLEMENTED TO DELETE COURSE */

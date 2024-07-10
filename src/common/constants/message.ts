@@ -8,6 +8,7 @@ export const MESSAGE = {
     APPROVER_ADDITION_FAILED: 'Approver addition failed',
     COURSE_DELETION_FAILED: 'Course deletion failed',
     APPROVER_ALREADY_EXISTS: 'Already approved by this user',
+    UNABLE_TO_FETCH_USERS: 'Unable to fetch users',
   },
   SUCCESS_MESSAGE: {
     COURSE_CREATED: 'Course created successfully',
