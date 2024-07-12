@@ -71,7 +71,7 @@ export class CourseService {
     } else if (query?.isDropdown && query?.isPhaseRequired) {
       courseData = await this.getCoursesWithDetails();
       courseData.courses = courseData[0].courses;
-      courseData.total = courseData[0].total[0].total;
+      courseData.total = courseData[0]?.total[0]?.total;
     } else {
       courseData = await this.getAllCourses(query);
 
@@ -124,6 +124,7 @@ export class CourseService {
                       pipeline: [
                         { $match: { $expr: { $eq: ['$taskId', '$$taskId'] } } },
                         { $sort: { subTaskIndex: 1 } },
+                        { $addFields: { estimatedTime: '$allocatedTime' }},
                         {
                           $project: {
                             __v: 0,

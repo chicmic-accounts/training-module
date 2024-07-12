@@ -190,6 +190,83 @@ export class TestService {
     const tests = await this.testModel.aggregate([
       { $match: { deleted: false } },
       {
+        $lookup: {
+          from: 'milestones',
+          let: { testId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$testId', '$$testId'] },
+                    { $eq: ['$deleted', false] },
+                  ],
+                },
+              },
+            },
+            { $sort: { milestoneIndex: 1 } },
+            {
+              $lookup: {
+                from: 'tasks',
+                let: { milestoneId: '$_id' },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: { $eq: ['$milestoneId', '$$milestoneId'] },
+                    },
+                  },
+                  { $sort: { taskIndex: 1 } },
+                  {
+                    $lookup: {
+                      from: 'subtasks',
+                      let: { taskId: '$_id' },
+                      pipeline: [
+                        { $match: { $expr: { $eq: ['$taskId', '$$taskId'] } } },
+                        { $sort: { subTaskIndex: 1 } },
+                        {
+                          $project: {
+                            __v: 0,
+                            courseId: 0,
+                            phaseId: 0,
+                            taskId: 0,
+                            subTaskIndex: 0,
+                            createdAt: 0,
+                            updatedAt: 0,
+                          },
+                        },
+                      ],
+                      as: 'subtasks',
+                    },
+                  },
+                  {
+                    $project: {
+                      __v: 0,
+                      courseId: 0,
+                      phaseId: 0,
+                      taskId: 0,
+                      taskIndex: 0,
+                      createdAt: 0,
+                      updatedAt: 0,
+                    },
+                  },
+                ],
+                as: 'tasks',
+              },
+            },
+            {
+              $project: {
+                __v: 0,
+                courseId: 0,
+                createdAt: 0,
+                updatedAt: 0,
+                phaseIndex: 0,
+              },
+            },
+          ],
+          as: 'milestones',
+        },
+      },
+      {
         $facet: {
           totalCount: [{ $count: 'total' }],
           testData: [
