@@ -7,7 +7,7 @@ import {
   UpdateCourseDto,
   UpdatePhaseDto,
 } from 'src/common/dtos/create-course.dto';
-import { CreateTestDto, TestDto } from 'src/common/dtos/test.dto';
+import { CreateTestDto, TestDto, UpdateMilestoneDto, UpdateTestDto } from 'src/common/dtos/test.dto';
 import { CourseService } from 'src/course/course.service';
 import { MilestoneService } from 'src/milestone/milestone.service';
 import { PhaseService } from 'src/phase/phase.service';
@@ -344,5 +344,140 @@ export class TrainingService {
   /** FUNCTION IMPLEMENTED TO UPDATE APPROVERS */
   async updateTestApprovers(body: UpdateApproversDto, testId: string) {
     return await this.testService.updateApprovers(body, testId);
+  }
+
+  /** FUNCTION IMPLEMENTED TO UPDATE TEST DETAILS */
+  async updateTest(testId: string, body: UpdateTestDto) {
+    const updatedTestDetails = {
+      testName: body.testName,
+      approver: body.approver,
+      updatedBy: body.userId,
+      totalMilestones: body.milestones.length,
+      estimatedTime: this.calculateTime(body.milestones),
+      noOfTopics: body.milestones.reduce(
+        (acc, phase) =>
+          acc +
+          phase.tasks.reduce((acc, task) => acc + task.subtasks.length, 0),
+        0,
+      ),
+    };
+
+    await this.testService.updateTest(updatedTestDetails, testId);
+
+    const previousMilestone = (
+      await this.milestoneService.getMilestone({ testId })
+    ).map((phase) => phase._id.toString());
+
+    const updatedMilstonessPromises = body.milestones.map(async (milestone) => {
+      const updatedMilestone: UpdateMilestoneDto = {
+        name: milestone.name,
+        allocatedTime: this.calculateTime([milestone]),
+        milestoneIndex: body.milestones.indexOf(milestone),
+        testId: new ObjectId(testId),
+        tasks: milestone.tasks,
+      };
+
+      let updatedMilestoneDetails;
+      if (milestone?.['_id']) {
+        updatedMilestoneDetails = await this.milestoneService.updateMilestone(
+          updatedMilestone,
+          milestone['_id'],
+        );
+      } else {
+        updatedMilestoneDetails = await this.milestoneService.createMilestone([
+          updatedMilestone,
+        ]);
+        updatedMilestoneDetails = updatedMilestoneDetails[0];
+        previousMilestone.push(updatedMilestoneDetails._id);
+      }
+
+      updatedMilestoneDetails.tasks = milestone.tasks;
+      return updatedMilestoneDetails;
+    });
+
+    let updatedMilstones = await Promise.all(updatedMilstonessPromises);
+
+    const phasesToDelete = previousMilestone.filter(
+      (phaseId) =>
+        !updatedMilstones.some((phase) => phase._id == phaseId.toString()),
+    );
+
+    await Promise.all(
+      phasesToDelete.map((milestone) =>
+        this.milestoneService.deleteMilestone(milestone, body.userId),
+      ),
+    );
+
+    const updateTasksPromises = updatedMilstones.map(async (milestone) => {
+      const updatedTasks = await Promise.all(
+        milestone.tasks.map(async (task, index) => {
+          const updatedTask = {
+            mainTask: task.mainTask,
+            allocatedTime: this.calculateTime([{ ...milestone, tasks: [task] }]),
+            milestoneId: milestone._id,
+            testId: new ObjectId(testId),
+            taskIndex: index,
+          };
+
+          let updatedTaskDetails;
+          if (task?.['_id']) {
+            updatedTaskDetails = await this.taskService.updateTask(updatedTask,task['_id']);
+          } else {
+            updatedTaskDetails = await this.taskService.createTask([
+              {
+                ...updatedTask,
+              },
+            ]);
+            updatedTaskDetails = updatedTaskDetails[0];
+          }
+          updatedTaskDetails.subtasks = task.subtasks;
+          return updatedTaskDetails;
+        }),
+      );
+
+      milestone.tasks = updatedTasks;
+      return milestone;
+    });
+
+    updatedMilstones = await Promise.all(updateTasksPromises);
+
+    const updateSubTasksPromises = updatedMilstones.map(async (phase) => {
+      for (const task of phase.tasks) {
+        const updatedSubTasks = await Promise.all(
+          task.subtasks.map(async (subTask, index) => {
+            const updatedSubTask = {
+              subTask: subTask.subTask,
+              reference: subTask.reference,
+              estimatedTime: this.timeStringToSeconds(subTask.estimatedTime),
+              testId: testId,
+              phaseId: phase._id,
+              taskId: task._id,
+              subTaskIndex: index,
+            };
+
+            let updatedSubTaskDetails;
+            if (subTask?.['_id']) {
+              updatedSubTaskDetails = await this.subTaskService.updateSubTask(
+                updatedSubTask,
+                subTask['_id'],
+              );
+            } else {
+              updatedSubTaskDetails = await this.subTaskService.createSubTask([
+                updatedSubTask,
+              ]);
+              updatedSubTaskDetails = updatedSubTaskDetails[0];
+            }
+            return updatedSubTaskDetails;
+          }),
+        );
+
+        task.subtasks = updatedSubTasks;
+      }
+      return phase;
+    });
+
+    updatedMilstones = await Promise.all(updateSubTasksPromises);
+
+    return updatedMilstones;
   }
 }

@@ -18,10 +18,10 @@ export class Task {
   testId?: ObjectId;
 
   @Prop({ default: '' })
-  milestoneId: ObjectId;
+  milestoneId?: ObjectId;
 
-  @Prop({ required: true })
-  phaseId: ObjectId;
+  @Prop({ default: '' })
+  phaseId?: ObjectId;
 
   @Prop({ required: true })
   taskIndex: number;

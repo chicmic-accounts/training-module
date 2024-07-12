@@ -46,11 +46,11 @@ export class UpdateMilestoneDto extends MilestoneDto {
 
   @IsNumber()
   @IsNotEmpty()
-  phaseIndex: number;
+  milestoneIndex: number;
 
   @IsString()
   @IsNotEmpty()
-  courseId: ObjectId;
+  testId: ObjectId;
 }
 
 export class TaskDto {
@@ -98,7 +98,7 @@ export class UpdateApproversDto {
   userId: string;
 }
 
-export class UpdateTestDto extends MilestoneDto {
+export class UpdateTestDto extends CreateTestDto {
   @IsOptional()
   @IsString()
   userId: string;

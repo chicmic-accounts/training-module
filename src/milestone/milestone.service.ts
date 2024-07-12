@@ -27,9 +27,9 @@ export class MilestoneService {
   }
 
   /** FUNCTION IMPLEMENTED TO GET PHASES ON THE BASIS OF COURSE */
-  async getMilestone(course: { courseId: string }) {
+  async getMilestone(test: { testId: string }) {
     const milestone = await this.milestoneModel.find({
-      courseId: new ObjectId(course.courseId),
+      courseId: new ObjectId(test.testId),
       deleted: false,
     });
     return milestone;

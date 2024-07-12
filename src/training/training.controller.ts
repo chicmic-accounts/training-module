@@ -108,4 +108,15 @@ export class TrainingController {
     );
     return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.TEST_UPDATED, course);
   }
+
+  @Put('test/:id')
+  async updateTest(
+    @Param('id') testId: string,
+    @Body() body: any,
+    @Req() req: any,
+  ) {
+    body.userId = req.user.userId; /** adding userId to the body  */
+    const course = await this.trainingService.updateTest(testId, body);
+    return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.COURSE_UPDATED, course);
+  }
 }

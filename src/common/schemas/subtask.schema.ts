@@ -8,17 +8,26 @@ export class SubTask {
   @Prop({ required: true })
   subTask: string;
 
-  @Prop()
+  @Prop({default: ''})
   link: string;
+
+  @Prop({ default: '' })
+  reference: string;
 
   @Prop({ required: true })
   estimatedTime: number;
 
-  @Prop({ required: true })
+  @Prop({ default: '' })
   courseId: ObjectId;
 
-  @Prop({ required: true })
+  @Prop({ default: '' })
   phaseId: ObjectId;
+
+  @Prop({ default: '' })
+  milestoneId: ObjectId;
+
+  @Prop({ default: '' })
+  testId: ObjectId;
 
   @Prop({ required: true })
   taskId: ObjectId;
