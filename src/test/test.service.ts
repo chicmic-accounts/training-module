@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ObjectId } from 'mongodb';
 import { Model } from 'mongoose';
+import test from 'node:test';
 import { DEFAULT_PAGINATION } from 'src/common/constants/constant';
 import { MESSAGE } from 'src/common/constants/message';
 import { TestDto, UpdateApproversDto } from 'src/common/dtos/test.dto';
@@ -85,6 +86,7 @@ export class TestService {
     } else {
       testData = await this.getAllTests(query);
       // Iterate through courses and replace user IDs with names
+
       testData.tests.forEach((test) => {
         test['createdByName'] = userIdToNameMap[test?.createdBy]?.name;
         test['approver'] = test?.approver?.map((approverId) => {
@@ -99,6 +101,17 @@ export class TestService {
       });
     }
 
+    testData.tests.forEach((test) => {
+      test['milestones']?.forEach((milestone) => {
+        milestone.estimatedTime = this.secondsToHHMM(milestone.allocatedTime);
+        milestone['tasks']?.forEach((task) => {
+          task.estimatedTime = this.secondsToHHMM(task.allocatedTime);
+          task['subtasks']?.forEach((subtask) => {
+            subtask.estimatedTime = this.secondsToHHMM(subtask.estimatedTime);
+          });
+        });
+      });
+    });
     return testData;
   }
 
@@ -204,6 +217,7 @@ export class TestService {
                 },
               },
             },
+            { $addFields: { estimatedTime: '$allocatedTime' }},
             { $sort: { milestoneIndex: 1 } },
             {
               $lookup: {

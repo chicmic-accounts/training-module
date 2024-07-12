@@ -124,7 +124,6 @@ export class CourseService {
                       pipeline: [
                         { $match: { $expr: { $eq: ['$taskId', '$$taskId'] } } },
                         { $sort: { subTaskIndex: 1 } },
-                        { $addFields: { estimatedTime: '$allocatedTime' }},
                         {
                           $project: {
                             __v: 0,
