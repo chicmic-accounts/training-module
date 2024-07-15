@@ -101,17 +101,19 @@ export class TestService {
       });
     }
 
-    testData.tests.forEach((test) => {
-      test['milestones']?.forEach((milestone) => {
-        milestone.estimatedTime = this.secondsToHHMM(milestone.allocatedTime);
-        milestone['tasks']?.forEach((task) => {
-          task.estimatedTime = this.secondsToHHMM(task.allocatedTime);
-          task['subtasks']?.forEach((subtask) => {
-            subtask.estimatedTime = this.secondsToHHMM(subtask.estimatedTime);
+    if(testData.tests.length > 0) {
+      testData.tests.forEach((test) => {
+        test['milestones']?.forEach((milestone) => {
+          milestone.estimatedTime = this.secondsToHHMM(milestone.allocatedTime);
+          milestone['tasks']?.forEach((task) => {
+            task.estimatedTime = this.secondsToHHMM(task.allocatedTime);
+            task['subtasks']?.forEach((subtask) => {
+              subtask.estimatedTime = this.secondsToHHMM(subtask.estimatedTime);
+            });
           });
         });
       });
-    });
+    }
     return testData;
   }
 
