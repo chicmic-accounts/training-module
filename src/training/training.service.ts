@@ -11,6 +11,7 @@ import { CreateTestDto, TestDto, UpdateMilestoneDto, UpdateTestDto } from 'src/c
 import { CourseService } from 'src/course/course.service';
 import { MilestoneService } from 'src/milestone/milestone.service';
 import { PhaseService } from 'src/phase/phase.service';
+import { PlanService } from 'src/plan/plan.service';
 import { SubTaskService } from 'src/sub-task/sub-task.service';
 import { TaskService } from 'src/task/task.service';
 import { TestService } from 'src/test/test.service';
@@ -24,6 +25,7 @@ export class TrainingService {
     private taskService: TaskService,
     private subTaskService: SubTaskService,
     private milestoneService: MilestoneService,
+    private planService: PlanService,
   ) {}
 
   /** FUNCTION IMPLEMENTED CALCULATE TIME */
@@ -480,4 +482,47 @@ export class TrainingService {
 
     return updatedMilstones;
   }
+
+  /** FUNCTION IMPLEMENTED TO DELETE TEST */
+  async deleteTest(testId: string, userId: string) {
+    return await this.testService.deleteTest(testId, userId);
+  }
+
+  /** FUNCTION IMPLEMENTED TO CREATE PLAN */
+  async createPlan(plan: any, userId: string) {
+
+    const planDetails = {
+      planName: plan.planName,
+      description: plan.description,
+      approver: plan.approver,
+    }
+    const createdPlan = await this.planService.createPlan(planDetails);
+    const phases = plan.phases.map((phase, index) => ({
+      name: phase.name,
+      allocatedTime: phase.tasks.reduce((acc, task) => acc + this.timeStringToSeconds(task.estimatedTime), 0),
+      planId: createdPlan._id,
+      phaseIndex: index,
+    }));
+
+    const createdPhases = await this.phaseService.createPhase(phases);
+    
+    const tasks = plan.phases.flatMap((phase, index) =>
+      phase.tasks.map((task, taskIndex) => ({
+        planType: task.planType,
+        allocatedTime: this.timeStringToSeconds(task.estimatedTime),
+        phaseId: createdPhases[index]._id,
+        planId: createdPlan._id,
+        taskIndex,
+      })),
+    );
+    
+    const createdTasks = await this.taskService.createTask(tasks);
+    return { createdPlan, createdPhases, createdTasks };
+  }
+
+  /** FUNCTION IMPLEMENTED TO GET PLAN */
+  async getPlans(query: any) {
+    return await this.planService.getPlans(query);
+  }
+
 }

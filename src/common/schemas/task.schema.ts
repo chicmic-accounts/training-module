@@ -5,8 +5,11 @@ import { ObjectId } from 'mongodb';
   timestamps: true,
 })
 export class Task {
-  @Prop({ required: true })
+  @Prop({ default: '' })
   mainTask: string;
+
+  @Prop({ default: '' })
+  planType?: string;
 
   @Prop({ required: true })
   allocatedTime: number;
@@ -22,6 +25,9 @@ export class Task {
 
   @Prop({ default: '' })
   phaseId?: ObjectId;
+
+  @Prop({ default: '' })
+  planId?: ObjectId;
 
   @Prop({ required: true })
   taskIndex: number;

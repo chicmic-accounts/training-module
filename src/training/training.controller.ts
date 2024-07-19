@@ -18,10 +18,13 @@ import {
 import { TrainingService } from './training.service';
 import { COMMON_RESPONSE } from 'src/common/constants/common-response';
 import { MESSAGE } from 'src/common/constants/message';
+import { PlanService } from 'src/plan/plan.service';
 
 @Controller('v1/training')
 export class TrainingController {
-  constructor(private trainingService: TrainingService) {}
+  constructor(
+    private trainingService: TrainingService,
+  ) {}
 
   @Post('course')
   async createCourse(@Body() courseDetails: CreateCourseDto, @Req() req: any) {
@@ -118,5 +121,22 @@ export class TrainingController {
     body.userId = req.user.userId; /** adding userId to the body  */
     const course = await this.trainingService.updateTest(testId, body);
     return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.COURSE_UPDATED, course);
+  }
+
+  /** Below are the routes for the Plan */
+  @Post('plan')
+  async createPlan(@Body() planDetails: any, @Req() req: any) {
+    const plan = await this.trainingService.createPlan(planDetails, req.user.userId);
+    return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.PLAN_CREATED, plan);
+  }
+
+  @Get('plan')
+  async getAllPlans(@Query() query: any) {
+    const plansData = await this.trainingService.getPlans(query);
+    return COMMON_RESPONSE(
+      MESSAGE.SUCCESS_MESSAGE.PLAN_FETCHED,
+      plansData?.plans,
+      plansData?.total,
+    );
   }
 }

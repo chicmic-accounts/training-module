@@ -4,21 +4,15 @@ import { ObjectId } from 'mongodb';
 @Schema({
   timestamps: true,
 })
-export class Phase {
+export class Plan {
   @Prop({ required: true })
-  name: string;
-
-  @Prop({ required: true })
-  allocatedTime: number;
-
-  @Prop({ default: '' })
-  courseId?: ObjectId;
-
-  @Prop({ default: '' })
-  planId?: ObjectId;
+  planName: string;
 
   @Prop({ required: true })
-  phaseIndex: number;
+  description: string;
+
+  @Prop({ required: true })
+  approver: Array<string>;
 
   @Prop({ default: false })
   deleted?: boolean;
@@ -27,4 +21,4 @@ export class Phase {
   deletedBy?: ObjectId;
 }
 
-export const PhaseSchema = SchemaFactory.createForClass(Phase);
+export const PlanSchema = SchemaFactory.createForClass(Plan);

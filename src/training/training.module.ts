@@ -8,6 +8,7 @@ import { TaskModule } from 'src/task/task.module';
 import { HttpService } from 'src/common/services/http.service';
 import { TestModule } from 'src/test/test.module';
 import { MilestoneModule } from 'src/milestone/milestone.module';
+import { PlanModule } from 'src/plan/plan.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { MilestoneModule } from 'src/milestone/milestone.module';
     SubTaskModule,
     TestModule,
     MilestoneModule,
+    PlanModule
   ],
   controllers: [TrainingController],
   providers: [TrainingService, HttpService],

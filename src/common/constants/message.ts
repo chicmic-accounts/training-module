@@ -18,5 +18,7 @@ export const MESSAGE = {
     COURSE_UPDATED: 'Course updated successfully',
     TEST_CREATED: 'Test created successfully',
     TEST_UPDATED: 'Test updated successfully',
+    PLAN_CREATED: 'Plan created successfully',
+    PLAN_FETCHED: 'Plan fetched successfully',
   },
 };
