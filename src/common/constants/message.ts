@@ -9,6 +9,7 @@ export const MESSAGE = {
     COURSE_DELETION_FAILED: 'Course deletion failed',
     APPROVER_ALREADY_EXISTS: 'Already approved by this user',
     UNABLE_TO_FETCH_USERS: 'Unable to fetch users',
+    UNABLE_TO_CLONE_PLAN: 'Unable to clone plan',
   },
   SUCCESS_MESSAGE: {
     COURSE_CREATED: 'Course created successfully',
@@ -20,5 +21,6 @@ export const MESSAGE = {
     TEST_UPDATED: 'Test updated successfully',
     PLAN_CREATED: 'Plan created successfully',
     PLAN_FETCHED: 'Plan fetched successfully',
+    PLAN_UPDATED: 'Plan updated successfully',
   },
 };

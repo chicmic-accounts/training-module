@@ -14,8 +14,20 @@ export class Plan {
   @Prop({ required: true })
   approver: Array<string>;
 
+  @Prop({ required: true })
+  approvedBy: Array<string>;
+
   @Prop({ default: false })
   deleted?: boolean;
+
+  @Prop({ default: null })
+  createdBy?: string;
+
+  @Prop({ default: null })
+  estimatedTime: number;
+
+  @Prop({ default: false })
+  approved?: boolean;
 
   @Prop({ default: null })
   deletedBy?: ObjectId;

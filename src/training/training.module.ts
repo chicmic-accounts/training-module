@@ -9,6 +9,7 @@ import { HttpService } from 'src/common/services/http.service';
 import { TestModule } from 'src/test/test.module';
 import { MilestoneModule } from 'src/milestone/milestone.module';
 import { PlanModule } from 'src/plan/plan.module';
+import { TraineeModule } from 'src/trainee/trainee.module';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { PlanModule } from 'src/plan/plan.module';
     SubTaskModule,
     TestModule,
     MilestoneModule,
-    PlanModule
+    PlanModule,
+    TraineeModule
   ],
   controllers: [TrainingController],
   providers: [TrainingService, HttpService],

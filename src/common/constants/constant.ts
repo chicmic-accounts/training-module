@@ -6,3 +6,10 @@ export const DEFAULT_PAGINATION = {
 export const API_ROUTES = {
   GET_USERS: 'v1/dropdown/user',
 };
+
+export const TRAINEE_STATUS = {
+  ONGOING: 1,
+  CANCELLED: 2,
+  COMPLETED: 3,
+  PENDING: 4,
+};

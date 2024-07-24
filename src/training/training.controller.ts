@@ -19,6 +19,7 @@ import { TrainingService } from './training.service';
 import { COMMON_RESPONSE } from 'src/common/constants/common-response';
 import { MESSAGE } from 'src/common/constants/message';
 import { PlanService } from 'src/plan/plan.service';
+import { ClonePlanDto } from 'src/common/dtos/clone-plan.dto';
 
 @Controller('v1/training')
 export class TrainingController {
@@ -130,13 +131,54 @@ export class TrainingController {
     return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.PLAN_CREATED, plan);
   }
 
+  @Post('plan/clone')
+  async clonePlan(@Body() plan: ClonePlanDto, @Req() req: any) {
+    const clonePlan = await this.trainingService.clonePlan(plan.planId, req.user.userId);
+    return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.PLAN_CREATED, clonePlan);
+  }
+
+  /**
+   * 
+   * @param query
+   * @returns 
+   */
   @Get('plan')
   async getAllPlans(@Query() query: any) {
-    const plansData = await this.trainingService.getPlans(query);
+    const plansData: any = await this.trainingService.getPlans(query);
     return COMMON_RESPONSE(
       MESSAGE.SUCCESS_MESSAGE.PLAN_FETCHED,
       plansData?.plans,
       plansData?.total,
     );
   }
+
+  @Put('plan')
+  async updatePlan(@Body() body: any, @Req() req: any, @Query() query: any) {
+    const plan = await this.trainingService.updatePlan(body, req.user.userId, query.planId);
+    return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.PLAN_UPDATED, plan);
+  }
+
+  @Delete('plan/:id')
+  async deletePlan(@Param('id') planId: string, @Req() req: any) {
+    const plan = await this.trainingService.deletePlan(planId, req.user.userId);
+    return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.PLAN_UPDATED, plan);
+  }
+
+  @Put('assignedPlan')
+  async assignPlan(@Body() body: any, @Query() query: any) {
+    const plan = await this.trainingService.assignPlan(body,query);
+    return COMMON_RESPONSE(MESSAGE.SUCCESS_MESSAGE.PLAN_UPDATED, plan);
+  }
+
+  // Training List
+  /* @Get('training-list')
+  async getTrainingList(@Query() query: any) {
+    const trainingList = await this.trainingService.getTrainingList(query);
+    return COMMON_RESPONSE(
+      MESSAGE.SUCCESS_MESSAGE.COURSE_FETCHED,
+      trainingList?.courses,
+      trainingList?.total,
+    );
+  } */
+
 }

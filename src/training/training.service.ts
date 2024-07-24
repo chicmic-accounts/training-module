@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ObjectId } from 'mongodb';
+import { MESSAGE } from 'src/common/constants/message';
 import {
   CourseDto,
   CreateCourseDto,
@@ -15,6 +16,7 @@ import { PlanService } from 'src/plan/plan.service';
 import { SubTaskService } from 'src/sub-task/sub-task.service';
 import { TaskService } from 'src/task/task.service';
 import { TestService } from 'src/test/test.service';
+import { TraineeService } from 'src/trainee/trainee.service';
 
 @Injectable()
 export class TrainingService {
@@ -26,6 +28,7 @@ export class TrainingService {
     private subTaskService: SubTaskService,
     private milestoneService: MilestoneService,
     private planService: PlanService,
+    private traineeService: TraineeService,
   ) {}
 
   /** FUNCTION IMPLEMENTED CALCULATE TIME */
@@ -495,6 +498,9 @@ export class TrainingService {
       planName: plan.planName,
       description: plan.description,
       approver: plan.approver,
+      createdBy: userId,
+      estimatedTime: plan.phases.reduce((acc, phase) => acc + phase.tasks.reduce((acc,task) => acc + this.timeStringToSeconds(task.estimatedTime),0), 0),
+      approvedBy: [],
     }
     const createdPlan = await this.planService.createPlan(planDetails);
     const phases = plan.phases.map((phase, index) => ({
@@ -522,7 +528,90 @@ export class TrainingService {
 
   /** FUNCTION IMPLEMENTED TO GET PLAN */
   async getPlans(query: any) {
-    return await this.planService.getPlans(query);
+    if(query.planId) {
+      return await this.planService.getPlanDetails(query.planId);
+    }
+    else {
+      return await this.planService.getPlans(query);
+    }
   }
 
+  /** FUNCTION IMPLEMENTED TO CLONE PLAN */
+  async clonePlan(planId: string, userId: string) {
+    const plans = await this.planService.getPlanById(planId);
+    const planPhases = await this.phaseService.getPhasesByPlan(planId);
+    const planTasks = await this.taskService.getTasksByPlan(planId);
+    if (plans.length) {
+      const planToBeCloned = plans[0];
+      const clonePlanDetails = {
+        ...planToBeCloned,
+        approvedBy: [],
+        createdBy: userId,
+        planName: planToBeCloned.planName + '-cloned',
+      };
+      const createdPlan = await this.planService.createPlan(clonePlanDetails);
+
+      const phases = planPhases.map((phase, index) => ({
+        name: phase.name,
+        allocatedTime: phase.allocatedTime,
+        planId: createdPlan._id,
+        phaseIndex: index,
+      }));
+
+      const createdPhases = await this.phaseService.createPhase(phases);
+
+      const tasks = planTasks.flatMap((task, index) => ({
+        planType: task.planType,
+        allocatedTime: task.allocatedTime,
+        phaseId: createdPhases[task.phaseIndex]._id,
+        planId: createdPlan._id,
+        taskIndex: index,
+        mainTask: task?.mainTask,
+      }));
+
+      await this.taskService.createTask(tasks);
+
+      return {};
+    }
+    else {
+      throw new Error(MESSAGE.ERROR_MESSAGE.UNABLE_TO_CLONE_PLAN);
+    }
+  }
+
+  async updatePlan(body: any, userId: string, planId: string) {
+    if(body?.approved) {
+      const plan = await this.planService.getPlanById(planId);
+      if(plan.length) {
+        plan[0].approvedBy.push(userId);
+        plan[0].approved = true;
+        const updatedPlan = await this.planService.updatePlan(plan,userId, planId);
+        return updatedPlan;
+      }
+      else {
+        throw new Error(MESSAGE.ERROR_MESSAGE.UNABLE_TO_FETCH_USERS);
+      }
+    }
+  }
+
+  async deletePlan(planId: string, userId: string) {
+    return await this.planService.deletePlan(planId, userId);
+  }
+
+  async assignPlan(body: any,query: any) {
+    if(query?.userId) {
+      const traineeDetails = {
+        assignedPlan: body.plan,
+        startDate: body.startDate,
+        _id: query.userId,
+      };
+      const getTrainee = await this.traineeService.getTraineeById(query.userId);
+      if(getTrainee) {
+        const updatedTrainee = await this.traineeService.updateTrainee(query.userId,traineeDetails);
+        return updatedTrainee;
+      }
+      else {
+        const createdTrainee = await this.traineeService.createTrainee(traineeDetails);
+      }
+    }
+  }
 }

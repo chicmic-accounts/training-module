@@ -44,4 +44,23 @@ export class PhaseService {
     );
     return phase;
   }
+
+  /** FUNCTION IMPLEMENTED TO GET PHASES OF PLANS */
+  async getPhasesByPlan(planId: string) {
+    const phases = await this.phaseModel.aggregate([
+      {
+        $match: { planId: new ObjectId(planId), deleted: false },
+      },
+      {
+        $project: {
+          _id: 0,
+          __v: 0,
+          createdBy: 0,
+          deleted: 0,
+          deletedBy: 0,
+        },
+      }
+    ]);
+    return phases;
+  }
 }

@@ -41,4 +41,29 @@ export class TaskService {
       { new: true },
     );
   }
+
+  /**
+   * 
+   * @param planId 
+   * @returns 
+   * 
+   * FUNCTION TO GET TASKS ON THE BASIS OF PLAN
+   */
+  async getTasksByPlan(planId: string) {
+    return await this.taskModel.aggregate([
+      {
+        $match: { planId: new ObjectId(planId), deleted: false },
+      },
+      {
+        $project: {
+          _id: 0,
+          __v: 0,
+          createdAt: 0,
+          updatedAt: 0,
+          deleted: 0,
+          deletedBy: 0,
+        }
+      }
+    ]);
+  }
 }
